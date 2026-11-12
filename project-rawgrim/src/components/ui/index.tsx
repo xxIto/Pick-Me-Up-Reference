@@ -95,6 +95,12 @@ const badgeVariantClasses: Record<string, string> = {
   'rarity-Rare':      'bg-blue-900/60 text-blue-300 border border-blue-700/50',
   'rarity-Epic':      'bg-violet-900/60 text-violet-300 border border-violet-600/50',
   'rarity-Legendary': 'bg-amber-900/60 text-amber-300 border border-amber-600/50',
+  'rarity-1': 'bg-zinc-800 text-zinc-300 border border-zinc-600',
+  'rarity-2': 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/50',
+  'rarity-3': 'bg-blue-900/60 text-blue-300 border border-blue-700/50',
+  'rarity-4': 'bg-violet-900/60 text-violet-300 border border-violet-600/50',
+  'rarity-5': 'bg-amber-900/60 text-amber-300 border border-amber-600/50',
+  'status-Ready':   'bg-emerald-900/60 text-emerald-300 border border-emerald-700/50',
   'status-Active':  'bg-emerald-900/60 text-emerald-300 border border-emerald-700/50',
   'status-Injured': 'bg-orange-900/60 text-orange-300 border border-orange-700/50',
   'status-Dead':    'bg-red-900/60    text-red-300    border border-red-700/50',
@@ -198,22 +204,23 @@ export function ResourceDisplay({ icon, value, label, color = '#D6B36A', classNa
 
 // ─── HeroCard ─────────────────────────────────────────────────────────────────
 
-import type { Hero } from '../../types/index.ts';
+import type { ResolvedHero } from '../../features/heroes/domain/types.ts';
 
 export interface HeroCardProps {
-  hero: Hero;
+  hero: ResolvedHero;
   size?: 'sm' | 'md';
   selected?: boolean;
-  onClick?: (hero: Hero) => void;
+  onClick?: (hero: ResolvedHero) => void;
   className?: string;
 }
 
 export function HeroCard({ hero, size = 'md', selected = false, onClick, className = '' }: HeroCardProps) {
   const isSmall = size === 'sm';
+  const { instance, definition, stats } = hero;
 
-  const hpColor = hero.hp / hero.maxHp > 0.5
+  const hpColor = instance.currentHp / stats.hp > 0.5
     ? 'emerald'
-    : hero.hp / hero.maxHp > 0.25
+    : instance.currentHp / stats.hp > 0.25
     ? 'orange'
     : 'rose';
 
@@ -238,36 +245,36 @@ export function HeroCard({ hero, size = 'md', selected = false, onClick, classNa
       {/* Portrait */}
       <div
         className={`${isSmall ? 'w-10 h-10' : 'w-14 h-14'} rounded-lg mx-auto mb-2 flex items-center justify-center font-bold text-white text-sm shrink-0`}
-        style={{ background: hero.portraitGradient }}
+        style={{ background: definition.portrait.gradient }}
         aria-hidden="true"
       >
-        {hero.initials}
+        {definition.portrait.initials}
       </div>
 
       {/* Name & class */}
       <div className="text-center min-w-0">
-        <p className={`font-semibold text-[#F4F1FA] truncate ${isSmall ? 'text-xs' : 'text-sm'}`}>{hero.name}</p>
-        <p className="text-[10px] text-[#918BA5]">{hero.class}</p>
+        <p className={`font-semibold text-[#F4F1FA] truncate ${isSmall ? 'text-xs' : 'text-sm'}`}>{definition.name}</p>
+        <p className="text-[10px] text-[#918BA5]">{definition.class}</p>
       </div>
 
       {/* HP bar */}
       {!isSmall && (
         <div className="mt-2">
-          <ProgressBar value={hero.hp} max={hero.maxHp} color={hpColor} height="xs" />
+          <ProgressBar value={instance.currentHp} max={stats.hp} color={hpColor} height="xs" />
         </div>
       )}
 
       {/* Badges */}
       <div className="flex flex-wrap gap-1 justify-center mt-2">
-        <Badge label={hero.rarity} variant={`rarity-${hero.rarity}`} />
-        {hero.status !== 'Active' && (
-          <Badge label={hero.status} variant={`status-${hero.status}`} />
+        <Badge label={`${definition.rarity}★`} variant={`rarity-${definition.rarity}`} />
+        {instance.status !== 'Ready' && (
+          <Badge label={instance.status} variant={`status-${instance.status}`} />
         )}
       </div>
 
       {/* Level chip */}
       <span className="absolute top-1.5 right-1.5 text-[9px] font-bold text-[#918BA5] bg-[#0f0d1f]/80 px-1 rounded">
-        Lv{hero.level}
+        Lv{instance.level}
       </span>
     </article>
   );

@@ -1,3 +1,3 @@
-- Gacha class Mage itu sangat langka, jadi beruntunglah jika kamu mendapatkan Mage.
+- Gacha class yang berhubungan dengan sihir, class lainnya yang berhubungan dengan magic, dan class lainnya yang berhubungan dengan elemen magic itu sangat langka, jadi beruntunglah jika kamu mendapatkannya.
 - Gacha heroes dengan star diatas 2 itu sangat langka, jadi beruntunglah jika kamu mendapatkannya.
 - 

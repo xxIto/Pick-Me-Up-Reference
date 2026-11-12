@@ -11,7 +11,10 @@ import {
   Swords,
 } from 'lucide-react';
 import { Card, Button, HeroCard, Badge, ProgressBar } from '../../components/ui/index.tsx';
-import { mockPlayer, mockHeroes, mockTower, mockExpedition, mockResources } from '../../data/mockData.ts';
+import { mockPlayer, mockTower, mockExpedition, mockResources } from '../../data/mockData.ts';
+import { heroDefinitions } from '../heroes/data/heroDefinitions.ts';
+import { resolveHero } from '../heroes/domain/roster.ts';
+import { useHeroStore } from '../heroes/store/heroStore.ts';
 
 // ─── Shortcut Card ─────────────────────────────────────────────────────────────
 
@@ -148,8 +151,15 @@ function TowerPanel() {
 // ─── Command Center Page ───────────────────────────────────────────────────────
 
 export function CommandCenterPage() {
+  const navigate = useNavigate();
   const { name, level } = mockPlayer;
   const { energy, maxEnergy } = mockResources;
+  const roster = useHeroStore((state) => state.roster);
+  const formation = useHeroStore((state) => state.formation);
+  const activeSquad = [...formation.frontline, ...formation.backline].map((heroId) => {
+    const instance = roster.find((hero) => hero.id === heroId);
+    return instance ? resolveHero(instance, heroDefinitions) : null;
+  });
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -197,15 +207,15 @@ export function CommandCenterPage() {
                 <Users size={15} className="text-violet-400" />
                 Active Squad
               </h2>
-              <Button variant="ghost" size="sm" onClick={() => {}}>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/heroes?tab=formation')}>
                 Manage →
               </Button>
             </div>
             <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-3">
               {Array.from({ length: 5 }, (_, i) => {
-                const hero = mockHeroes[i];
+                const hero = activeSquad[i];
                 return hero ? (
-                  <HeroCard key={hero.id} hero={hero} size="sm" />
+                  <HeroCard key={hero.instance.id} hero={hero} size="sm" />
                 ) : (
                   <Card
                     key={i}

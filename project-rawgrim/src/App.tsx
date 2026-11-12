@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout.tsx';
 import { CommandCenterPage } from './features/dashboard/CommandCenterPage.tsx';
 import { HeroesPage } from './features/heroes/HeroesPage.tsx';
+import { HeroDetailPage } from './features/heroes/HeroDetailPage.tsx';
 import { SummonPage } from './features/gacha/SummonPage.tsx';
 import { TowerPage } from './features/tower/TowerPage.tsx';
 import { ExpeditionPage } from './features/progression/ExpeditionPage.tsx';
@@ -15,6 +16,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route index element={<CommandCenterPage />} />
           <Route path="heroes"     element={<HeroesPage />} />
+          <Route path="heroes/:heroId" element={<HeroDetailPage />} />
           <Route path="summon"     element={<SummonPage />} />
           <Route path="tower"      element={<TowerPage />} />
           <Route path="expedition" element={<ExpeditionPage />} />

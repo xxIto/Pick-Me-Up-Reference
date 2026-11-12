@@ -2,8 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   mockPlayer,
   mockResources,
-  mockHeroes,
-  mockSquad,
   mockTower,
   mockExpedition,
 } from '../src/data/mockData.ts';
@@ -29,59 +27,6 @@ describe('mockResources', () => {
 
   it('energy does not exceed maxEnergy', () => {
     expect(mockResources.energy).toBeLessThanOrEqual(mockResources.maxEnergy);
-  });
-});
-
-describe('mockHeroes', () => {
-  it('provides exactly 5 heroes', () => {
-    expect(mockHeroes).toHaveLength(5);
-  });
-
-  it('every hero has a unique id', () => {
-    const ids = mockHeroes.map((h) => h.id);
-    expect(new Set(ids).size).toBe(ids.length);
-  });
-
-  it('every hero hp does not exceed maxHp', () => {
-    for (const hero of mockHeroes) {
-      expect(hero.hp).toBeLessThanOrEqual(hero.maxHp);
-      expect(hero.hp).toBeGreaterThan(0);
-    }
-  });
-
-  it('every hero has initials with length 2', () => {
-    for (const hero of mockHeroes) {
-      expect(hero.initials).toHaveLength(2);
-    }
-  });
-
-  it('every hero has a valid class', () => {
-    const validClasses = ['Warrior', 'Mage', 'Ranger', 'Cleric'];
-    for (const hero of mockHeroes) {
-      expect(validClasses).toContain(hero.class);
-    }
-  });
-
-  it('every hero has a valid rarity', () => {
-    const validRarities = ['Common', 'Rare', 'Epic', 'Legendary'];
-    for (const hero of mockHeroes) {
-      expect(validRarities).toContain(hero.rarity);
-    }
-  });
-});
-
-describe('mockSquad', () => {
-  it('has exactly 5 slots', () => {
-    expect(mockSquad.slots).toHaveLength(5);
-  });
-
-  it('all slots reference heroes from mockHeroes', () => {
-    const heroIds = new Set(mockHeroes.map((h) => h.id));
-    for (const slot of mockSquad.slots) {
-      if (slot !== null) {
-        expect(heroIds.has(slot.id)).toBe(true);
-      }
-    }
   });
 });
 
