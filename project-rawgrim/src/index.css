@@ -2,11 +2,38 @@
 
 :root {
   font-family: Inter, system-ui, sans-serif;
-  color: #f5f3ff;
-  background: #0b0a14;
+  color: #F4F1FA;
+  background: #0B0A14;
 }
 
 body {
   margin: 0;
   min-width: 320px;
+}
+
+/* Prevent horizontal overflow at all widths */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Smooth scrollbar for webkit */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B0A14;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2540;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3555;
+}
+
+/* xs breakpoint shim (Tailwind v4 uses @media not @screen) */
+@media (min-width: 480px) {
+  .xs\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
