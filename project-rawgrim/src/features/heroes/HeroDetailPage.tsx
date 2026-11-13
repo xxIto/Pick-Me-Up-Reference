@@ -108,7 +108,15 @@ export function HeroDetailPage() {
             </div>
             <div className="mt-5 rounded-lg border border-dashed border-[#2e2a44] bg-[#0f0d1f] p-3">
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#5f5875]">Learned behavior</p>
-              <p className="mt-1 text-xs text-[#918BA5]">Neutral baseline. Persistent adaptation arrives in TASK 005B.</p>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                {Object.entries(personality.learned).map(([category, value]) => (
+                  <div key={category} className="flex justify-between rounded bg-[#151126] px-2 py-1.5">
+                    <span className="capitalize text-[#918BA5]">{category.replace(/([A-Z])/g, ' $1')}</span>
+                    <span className="font-bold text-violet-300">{value >= 0 ? '+' : ''}{value}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-[10px] text-[#5f5875]">Battles learned: {personality.learning?.battlesProcessed ?? 0}</p>
             </div>
           </Card>
         </div>

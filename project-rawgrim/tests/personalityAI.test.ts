@@ -94,7 +94,7 @@ describe('personality identities and migration', () => {
     expect(validatePersonalityDimensions({ ...personality().innate, trust: 1.5 })).toBe(false);
   });
 
-  it('normalizes personality and learned values to their documented integer bounds', () => {
+  it('normalizes personality and learned values to their documented bounds', () => {
     expect(normalizePersonalityValue(-2)).toBe(0);
     expect(normalizePersonalityValue(49.6)).toBe(50);
     expect(normalizePersonalityValue(150)).toBe(100);

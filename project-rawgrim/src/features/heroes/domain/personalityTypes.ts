@@ -1,3 +1,5 @@
+import type { LearningProfile } from '../../learning/domain/types.ts';
+
 export const TEAM_STRATEGIES = ['Aggressive', 'Balanced', 'Defensive'] as const;
 export type TeamStrategy = (typeof TEAM_STRATEGIES)[number];
 
@@ -30,4 +32,7 @@ export interface HeroPersonalityState {
   innate: PersonalityDimensions;
   learned: LearnedPreferences;
   emotion: EmotionalState;
+  /** Optional only for pre-TASK-005B saves; runtime migration supplies it. */
+  learning?: LearningProfile;
 }
+

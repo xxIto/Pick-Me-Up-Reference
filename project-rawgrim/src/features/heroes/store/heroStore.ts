@@ -20,6 +20,12 @@ import { initialHeroRoster, initialPartyFormation } from '../data/initialRoster.
 import { assignHeroToSlot, removeHeroFromSlot } from '../domain/heroRules.ts';
 import type { FormationSlot, HeroInstance, PartyFormation } from '../domain/types.ts';
 import type { TeamStrategy } from '../domain/personalityTypes.ts';
+import { ensureHeroPersonality } from '../domain/personality.ts';
+import { applyCombatExperience } from '../../learning/domain/learningEngine.ts';
+import type {
+  CombatExperience,
+  LearningUpdate,
+} from '../../learning/domain/types.ts';
 
 interface HeroStoreState {
   version: typeof GAME_SAVE_VERSION;
@@ -31,6 +37,13 @@ interface HeroStoreState {
   removeHero: (slot: FormationSlot) => void;
   summon: (count: SummonCount) => Promise<SummonTransactionResult>;
   setTeamStrategy: (strategy: TeamStrategy) => void;
+  commitLearningExperience: (experience: CombatExperience) => LearningCommitResult;
+}
+
+export interface LearningCommitResult {
+  applied: boolean;
+  duplicate: boolean;
+  updates: readonly LearningUpdate[];
 }
 
 const STORAGE_KEY = 'rawgrim-hero-state';
@@ -102,6 +115,36 @@ export const useHeroStore = create<HeroStoreState>()(
         createHeroInstanceId,
       ),
       setTeamStrategy: (teamStrategy) => set({ teamStrategy }),
+      commitLearningExperience: (experience) => {
+        if (!experience.eligibleForLearning || experience.outcome === 'ongoing') {
+          return { applied: false, duplicate: false, updates: [] };
+        }
+        const updates: LearningUpdate[] = [];
+        let sawRelevantHero = false;
+        let allRelevantHeroesDuplicate = true;
+        let changed = false;
+        const roster = get().roster.map((hero) => {
+          const observations = experience.observations.filter((item) => item.heroInstanceId === hero.id);
+          if (observations.length === 0) return hero;
+          sawRelevantHero = true;
+          const definition = heroDefinitions.find((candidate) => candidate.id === hero.definitionId);
+          const result = applyCombatExperience(
+            ensureHeroPersonality(hero, definition),
+            { ...experience, observations },
+          );
+          if (result.duplicate) return hero;
+          allRelevantHeroesDuplicate = false;
+          changed = true;
+          updates.push(...result.updates);
+          return { ...hero, personality: result.personality };
+        });
+        if (changed) set({ roster });
+        return {
+          applied: changed,
+          duplicate: sawRelevantHero && allRelevantHeroesDuplicate,
+          updates,
+        };
+      },
     }),
     {
       name: STORAGE_KEY,

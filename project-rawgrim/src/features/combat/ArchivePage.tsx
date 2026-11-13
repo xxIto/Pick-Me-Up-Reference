@@ -13,6 +13,7 @@ import { SANDBOX_ENEMIES } from './data/enemyDefinitions.ts';
 import { getCurrentActor } from './domain/combatEngine.ts';
 import { initializeCombat } from './domain/initialization.ts';
 import type { CombatState, CombatUnit } from './domain/types.ts';
+import { LearningLaboratory } from '../learning/components/LearningLaboratory.tsx';
 
 function CombatUnitCard({ unit, active }: { unit: CombatUnit; active: boolean }) {
   const hpColor = unit.side === 'allies' ? 'violet' : 'rose';
@@ -160,6 +161,8 @@ export function ArchivePage() {
           {error}
         </div>
       )}
+
+      <LearningLaboratory roster={roster} formation={formation} teamStrategy={teamStrategy} />
 
       {!combat ? (
         <Card className="flex min-h-[420px] flex-col items-center justify-center p-8 text-center" glow>

@@ -4,6 +4,7 @@ import {
   createNeutralEmotionalState,
   createNeutralLearnedPreferences,
 } from '../../heroes/domain/personality.ts';
+import { createNeutralLearningProfile } from '../../learning/domain/learningProfile.ts';
 import type { DecisionContext } from './types.ts';
 import type { AutonomousStepResult, DecisionContextResolver, DecisionTrace } from './types.ts';
 import { decideCombatAction } from './utilityAI.ts';
@@ -20,6 +21,7 @@ export function createNeutralDecisionContext(identityId: string): DecisionContex
       },
       learned: createNeutralLearnedPreferences(),
       emotion: createNeutralEmotionalState(),
+      learning: createNeutralLearningProfile(),
     },
   };
 }

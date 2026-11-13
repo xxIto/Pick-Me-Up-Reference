@@ -6,8 +6,11 @@ import {
 } from '../../combat/domain/calculations.ts';
 import { getAvailableActions, getCurrentActor } from '../../combat/domain/combatEngine.ts';
 import type { CombatAction, CombatState, CombatUnit } from '../../combat/domain/types.ts';
-import type { LearnedPreferences, PersonalityDimensions } from '../../heroes/domain/personalityTypes.ts';
+import type { PersonalityDimensions } from '../../heroes/domain/personalityTypes.ts';
+import { extractLearningContext } from '../../learning/domain/context.ts';
+import { calculateContextualLearnedContribution } from '../../learning/domain/learningEngine.ts';
 import type { CandidateUtility, DecisionContext, DecisionTrace } from './types.ts';
+import { getActionCategory } from './actionCategory.ts';
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
@@ -23,14 +26,6 @@ function actionKey(action: CombatAction): string {
 
 function getUnit(state: CombatState, unitId: string): CombatUnit | null {
   return state.units.find((unit) => unit.id === unitId) ?? null;
-}
-
-function actionCategory(action: CombatAction): keyof LearnedPreferences {
-  if (action.type === 'defend') return 'defense';
-  const skill = action.skillId ? getCombatSkill(action.skillId) : null;
-  if (skill?.kind === 'healing') return 'healing';
-  if (action.type === 'skill') return 'activeSkill';
-  return 'offense';
 }
 
 function isOffensive(action: CombatAction): boolean {
@@ -57,7 +52,7 @@ function calculateBaseUtility(state: CombatState, actor: CombatUnit, action: Com
   const target = getUnit(state, action.targetId);
   if (!target) return 0;
   const actorRisk = 1 - actor.currentHp / actor.stats.maxHp;
-  const category = actionCategory(action);
+  const category = getActionCategory(action);
   let score: number;
 
   if (category === 'healing') {
@@ -87,8 +82,8 @@ function calculatePersonalityContribution(
   fear: number,
   anger: number,
 ): number {
-  const category = actionCategory(action);
-  let score = 0;
+  const category = getActionCategory(action);
+  let score: number;
   if (category === 'offense' || category === 'activeSkill') {
     score = (personality.aggression - 50) * 0.2 + (personality.courage - 50) * 0.1 -
       (personality.selfPreservation - 50) * 0.08 + (anger - 25) * 0.05;
@@ -103,7 +98,7 @@ function calculatePersonalityContribution(
 }
 
 function calculateStrategyContribution(action: CombatAction, context: DecisionContext): number {
-  const category = actionCategory(action);
+  const category = getActionCategory(action);
   let raw = 0;
   if (context.teamStrategy === 'Aggressive') {
     raw = category === 'offense' || category === 'activeSkill' ? 15 : category === 'defense' ? -10 : -3;
@@ -127,8 +122,10 @@ export function scoreCandidateAction(
     context.personality.emotion.anger,
   );
   const teamStrategyContribution = calculateStrategyContribution(action, context);
-  const learnedPreferenceContribution = clamp(
-    context.personality.learned[actionCategory(action)], -10, 10,
+  const learnedPreferenceContribution = calculateContextualLearnedContribution(
+    context.personality,
+    getActionCategory(action),
+    extractLearningContext(state, actor, action),
   );
   const finalUtility = clamp(
     baseUtility + personalityContribution + teamStrategyContribution + learnedPreferenceContribution,
@@ -142,7 +139,7 @@ export function scoreCandidateAction(
     teamStrategyContribution: roundScore(teamStrategyContribution),
     learnedPreferenceContribution: roundScore(learnedPreferenceContribution),
     finalUtility: roundScore(finalUtility),
-    summary: `${actionCategory(action)} utility ${roundScore(finalUtility)}`,
+    summary: `${getActionCategory(action)} utility ${roundScore(finalUtility)}`,
   };
 }
 

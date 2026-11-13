@@ -191,6 +191,7 @@ export function resolveAction(state: CombatState, action: CombatAction): ActionR
     events.push({
       round: state.round, type: 'damage', actorId: actor.id, targetId: target.id,
       skillId: skill?.id, amount,
+      mitigatedAmount: target.defending ? Math.max(0, rawDamage - reducedDamage) : 0,
       message: `${actor.name} dealt ${amount} ${damageType} damage to ${target.name}.`,
     });
     if (remainingHp === 0) {

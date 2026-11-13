@@ -5,6 +5,10 @@ import type {
   LearnedPreferences,
   PersonalityDimensions,
 } from './personalityTypes.ts';
+import {
+  createNeutralLearningProfile,
+  normalizeLearningProfile,
+} from '../../learning/domain/learningProfile.ts';
 
 export type PersonalityRandom = () => number;
 
@@ -19,7 +23,7 @@ export function normalizePersonalityValue(value: number): number {
 
 export function normalizeLearnedPreference(value: number): number {
   if (!Number.isFinite(value)) return 0;
-  return Math.min(10, Math.max(-10, Math.round(value)));
+  return Math.round(Math.min(10, Math.max(-10, value)) * 10_000) / 10_000;
 }
 
 export function validatePersonalityDimensions(value: PersonalityDimensions): boolean {
@@ -63,6 +67,7 @@ export function generatePersonality(
     innate: dimensions,
     learned: createNeutralLearnedPreferences(),
     emotion: createNeutralEmotionalState(),
+    learning: createNeutralLearningProfile(),
   };
 }
 
@@ -125,5 +130,6 @@ export function normalizeHeroPersonality(value: HeroPersonalityState): HeroPerso
       anger: normalizePersonalityValue(value.emotion.anger),
       resolve: normalizePersonalityValue(value.emotion.resolve),
     },
+    learning: normalizeLearningProfile(value.learning),
   };
 }

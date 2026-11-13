@@ -105,7 +105,36 @@ describe('game save migration', () => {
     expect(first?.roster[0].personality?.identityId).toBe('personality:hero-1');
   });
 
+  it('migrates version-three personality saves with neutral contextual learning', () => {
+    const legacyPersonality = migrateLegacyPersonality('hero-1');
+    delete legacyPersonality.learning;
+    const versionThree = {
+      ...validState,
+      version: 3,
+      crystals: 480,
+      teamStrategy: 'Aggressive',
+      roster: [{
+        ...validState.roster[0],
+        personality: legacyPersonality,
+      }],
+    };
+
+    const migrated = migrateGameState(versionThree, 3, 0);
+
+    expect(migrated?.version).toBe(GAME_SAVE_VERSION);
+    expect(migrated?.teamStrategy).toBe('Aggressive');
+    expect(migrated?.roster[0].personality?.learning?.battlesProcessed).toBe(0);
+    expect(migrated?.roster[0].personality?.innate).toEqual(versionThree.roster[0].personality.innate);
+  });
+
   it('round-trips a current game save without losing summoned heroes or crystals', () => {
+    const learnedPersonality = migrateLegacyPersonality('hero-1');
+    learnedPersonality.learned.offense = 1.25;
+    if (learnedPersonality.learning) {
+      learnedPersonality.learning.contextWeights.offense.offensiveOpportunity = 0.75;
+      learnedPersonality.learning.battlesProcessed = 1;
+      learnedPersonality.learning.processedBattleBits[0] = 4;
+    }
     const state = {
       ...validState,
       version: GAME_SAVE_VERSION,
@@ -114,7 +143,7 @@ describe('game save migration', () => {
       roster: [
         {
           ...validState.roster[0],
-          personality: migrateLegacyPersonality('hero-1'),
+          personality: learnedPersonality,
         },
         {
           id: 'summoned-1', definitionId: 'tovin-ratcatcher', level: 1,
