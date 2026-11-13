@@ -1,3 +1,5 @@
+import type { HeroPersonalityState } from './personalityTypes.ts';
+
 export const HERO_CLASSES = ['Warrior', 'Tank', 'Archer', 'Healer'] as const;
 export type HeroClass = (typeof HERO_CLASSES)[number];
 
@@ -49,13 +51,14 @@ export interface HeroInstance {
   experience: number;
   currentHp: number;
   status: HeroStatus;
+  /** Optional only for pre-TASK-005A saves; runtime migration supplies it once. */
+  personality?: HeroPersonalityState;
 }
 
 export interface PartyFormation {
   frontline: [string | null, string | null, string | null];
   backline: [string | null, string | null];
 }
-
 export type FormationLine = keyof PartyFormation;
 
 export interface FormationSlot {
@@ -77,3 +80,4 @@ export interface ResolvedHero {
   definition: HeroDefinition;
   stats: HeroStats;
 }
+

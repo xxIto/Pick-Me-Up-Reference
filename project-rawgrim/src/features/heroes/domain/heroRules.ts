@@ -5,13 +5,19 @@ import type {
   HeroStats,
   PartyFormation,
 } from './types.ts';
+import { generatePersonality, migrateLegacyPersonality } from './personality.ts';
+import type { PersonalityRandom } from './personality.ts';
 
 export const EMPTY_FORMATION: PartyFormation = {
   frontline: [null, null, null],
   backline: [null, null],
 };
 
-export function createHeroInstance(definition: HeroDefinition, id: string): HeroInstance {
+export function createHeroInstance(
+  definition: HeroDefinition,
+  id: string,
+  personalityRandom?: PersonalityRandom,
+): HeroInstance {
   if (id.trim().length === 0) {
     throw new Error('Hero instance id is required');
   }
@@ -23,6 +29,9 @@ export function createHeroInstance(definition: HeroDefinition, id: string): Hero
     experience: 0,
     currentHp: definition.baseStats.hp,
     status: 'Ready',
+    personality: personalityRandom
+      ? generatePersonality(`personality:${id}`, definition.trait.id, personalityRandom)
+      : migrateLegacyPersonality(id, definition.trait.id),
   };
 }
 

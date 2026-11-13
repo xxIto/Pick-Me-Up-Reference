@@ -91,13 +91,16 @@ describe('hero generation', () => {
       heroDefinitions,
       createSeededRandom(seed),
       (() => { let id = 0; return () => `seeded-${++id}`; })(),
-    ).map((hero) => hero.definitionId);
+    ).map((hero) => ({ definitionId: hero.definitionId, personality: hero.personality }));
 
     expect(summon(42)).toEqual(summon(42));
   });
 
   it('produces deterministic heroes with an injected random source', () => {
-    const random = sequenceRandom([0.99, 0, 0, 0]);
+    const random = sequenceRandom([
+      0.99, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ]);
     const ids = ['summon-a', 'summon-b'];
     let idIndex = 0;
 
@@ -114,7 +117,10 @@ describe('hero generation', () => {
       2,
       GACHA_CONFIG,
       heroDefinitions,
-      sequenceRandom([0.99, 0, 0.99, 0]),
+      sequenceRandom([
+        0.99, 0, 0, 0, 0, 0, 0, 0, 0,
+        0.99, 0, 0, 0, 0, 0, 0, 0, 0,
+      ]),
       (() => {
         let id = 0;
         return () => `unique-${++id}`;
@@ -131,7 +137,7 @@ describe('hero generation', () => {
         2,
         GACHA_CONFIG,
         heroDefinitions,
-        sequenceRandom([0, 0, 0, 0]),
+        sequenceRandom([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
         () => 'collision',
       ),
     ).toThrow('Generated hero instance IDs must be unique');

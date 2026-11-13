@@ -5,6 +5,8 @@ import { heroDefinitions } from '../data/heroDefinitions.ts';
 import { getAssignedHeroIds } from '../domain/heroRules.ts';
 import { resolveHero } from '../domain/roster.ts';
 import type { FormationLine, FormationSlot, ResolvedHero } from '../domain/types.ts';
+import { TEAM_STRATEGIES } from '../domain/personalityTypes.ts';
+import type { TeamStrategy } from '../domain/personalityTypes.ts';
 import { useHeroStore } from '../store/heroStore.ts';
 
 interface FormationRowProps {
@@ -93,6 +95,8 @@ export function PartyFormationPanel() {
   const roster = useHeroStore((state) => state.roster);
   const formation = useHeroStore((state) => state.formation);
   const assignHero = useHeroStore((state) => state.assignHero);
+  const teamStrategy = useHeroStore((state) => state.teamStrategy);
+  const setTeamStrategy = useHeroStore((state) => state.setTeamStrategy);
   const [error, setError] = useState<string | null>(null);
 
   const resolvedHeroes = useMemo(
@@ -119,14 +123,23 @@ export function PartyFormationPanel() {
   return (
     <div className="space-y-6">
       <Card className="p-4 sm:p-5" glow>
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-bold text-[#F4F1FA]">Battle Formation</h2>
             <p className="text-xs text-[#918BA5]">Three frontline defenders and two backline specialists.</p>
           </div>
-          <span className="text-xs font-semibold text-[#D6B36A]">
-            {assignedIds.size} / 5 deployed
-          </span>
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-[#918BA5]" htmlFor="team-strategy">Strategy</label>
+            <select
+              id="team-strategy"
+              value={teamStrategy}
+              onChange={(event) => setTeamStrategy(event.target.value as TeamStrategy)}
+              className="rounded-lg border border-[#2e2a44] bg-[#0f0d1f] px-3 py-2 text-xs text-[#F4F1FA] outline-none focus:border-violet-500"
+            >
+              {TEAM_STRATEGIES.map((strategy) => <option key={strategy}>{strategy}</option>)}
+            </select>
+            <span className="text-xs font-semibold text-[#D6B36A]">{assignedIds.size} / 5 deployed</span>
+          </div>
         </div>
       </Card>
 

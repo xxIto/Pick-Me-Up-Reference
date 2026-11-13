@@ -1,6 +1,8 @@
 import type { HeroInstance, PartyFormation } from '../domain/types.ts';
+import { migrateLegacyPersonality } from '../domain/personality.ts';
+import { heroDefinitions } from './heroDefinitions.ts';
 
-export const initialHeroRoster: HeroInstance[] = [
+const legacyHeroRoster: HeroInstance[] = [
   { id: 'hero-valdris-001', definitionId: 'valdris-ashen-blade', level: 22, experience: 340, currentHp: 2180, status: 'Ready' },
   { id: 'hero-mara-001', definitionId: 'mara-bloodbound', level: 12, experience: 180, currentHp: 1210, status: 'Injured' },
   { id: 'hero-garran-001', definitionId: 'garran-stoneward', level: 18, experience: 90, currentHp: 2600, status: 'Ready' },
@@ -12,6 +14,14 @@ export const initialHeroRoster: HeroInstance[] = [
   { id: 'hero-orren-001', definitionId: 'orren-bellkeeper', level: 11, experience: 160, currentHp: 1280, status: 'Ready' },
   { id: 'hero-sable-001', definitionId: 'sable-witch', level: 7, experience: 75, currentHp: 0, status: 'Dead' },
 ];
+
+export const initialHeroRoster: HeroInstance[] = legacyHeroRoster.map((hero) => {
+  const definition = heroDefinitions.find((candidate) => candidate.id === hero.definitionId);
+  return {
+    ...hero,
+    personality: migrateLegacyPersonality(hero.id, definition?.trait.id),
+  };
+});
 
 export const initialPartyFormation: PartyFormation = {
   frontline: ['hero-valdris-001', 'hero-garran-001', 'hero-brunna-001'],

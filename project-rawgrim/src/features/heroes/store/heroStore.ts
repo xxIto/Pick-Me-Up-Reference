@@ -19,24 +19,28 @@ import { heroDefinitions } from '../data/heroDefinitions.ts';
 import { initialHeroRoster, initialPartyFormation } from '../data/initialRoster.ts';
 import { assignHeroToSlot, removeHeroFromSlot } from '../domain/heroRules.ts';
 import type { FormationSlot, HeroInstance, PartyFormation } from '../domain/types.ts';
+import type { TeamStrategy } from '../domain/personalityTypes.ts';
 
 interface HeroStoreState {
   version: typeof GAME_SAVE_VERSION;
   roster: HeroInstance[];
   formation: PartyFormation;
   crystals: number;
+  teamStrategy: TeamStrategy;
   assignHero: (heroId: string, slot: FormationSlot) => { ok: true } | { ok: false; error: string };
   removeHero: (slot: FormationSlot) => void;
   summon: (count: SummonCount) => Promise<SummonTransactionResult>;
+  setTeamStrategy: (strategy: TeamStrategy) => void;
 }
 
 const STORAGE_KEY = 'rawgrim-hero-state';
 
-const fallbackState: Pick<HeroStoreState, 'version' | 'roster' | 'formation' | 'crystals'> = {
+const fallbackState: Pick<HeroStoreState, 'version' | 'roster' | 'formation' | 'crystals' | 'teamStrategy'> = {
   version: GAME_SAVE_VERSION,
   roster: initialHeroRoster,
   formation: initialPartyFormation,
   crystals: mockResources.crystals,
+  teamStrategy: 'Balanced',
 };
 
 let summonCoordinator: SummonCoordinator | null = null;
@@ -97,12 +101,15 @@ export const useHeroStore = create<HeroStoreState>()(
         Math.random,
         createHeroInstanceId,
       ),
+      setTeamStrategy: (teamStrategy) => set({ teamStrategy }),
     }),
     {
       name: STORAGE_KEY,
       version: GAME_SAVE_VERSION,
       storage: createJSONStorage(createSafeBrowserStorage),
-      partialize: ({ version, roster, formation, crystals }) => ({ version, roster, formation, crystals }),
+      partialize: ({ version, roster, formation, crystals, teamStrategy }) => ({
+        version, roster, formation, crystals, teamStrategy,
+      }),
       migrate: (persisted, persistedVersion) =>
         migrateGameState(persisted, persistedVersion, mockResources.crystals) ?? fallbackState,
       merge: (persisted, current) => {
@@ -121,12 +128,13 @@ function getSummonCoordinator(): SummonCoordinator {
       return { crystals, roster };
     },
     persist: async ({ crystals, roster }) => {
-      const { formation } = useHeroStore.getState();
+      const { formation, teamStrategy } = useHeroStore.getState();
       const persisted: PersistedGameState = {
         version: GAME_SAVE_VERSION,
         crystals,
         roster,
         formation,
+        teamStrategy,
       };
       localStorage.setItem(STORAGE_KEY, createGameSaveEnvelope(persisted));
     },

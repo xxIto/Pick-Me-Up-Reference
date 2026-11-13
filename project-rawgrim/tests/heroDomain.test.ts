@@ -31,14 +31,16 @@ describe('hero instances', () => {
   it('creates a valid owned hero with the supplied stable id', () => {
     const hero = createHeroInstance(heroDefinitions[0], 'owned-valdris');
 
-    expect(hero).toEqual({
+    expect(hero).toEqual(expect.objectContaining({
       id: 'owned-valdris',
       definitionId: heroDefinitions[0].id,
       level: 1,
       experience: 0,
       currentHp: heroDefinitions[0].baseStats.hp,
       status: 'Ready',
-    });
+    }));
+    expect(hero.personality?.identityId).toBe('personality:owned-valdris');
+    expect(hero.personality?.innateTraitId).toBe(heroDefinitions[0].trait.id);
   });
 
   it('calculates level growth without mutating the definition', () => {

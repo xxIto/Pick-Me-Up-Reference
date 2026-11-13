@@ -3,8 +3,14 @@ import { Play, RotateCcw, SkipForward, Swords, Zap } from 'lucide-react';
 import { Badge, Button, Card, ProgressBar } from '../../components/ui/index.tsx';
 import { heroDefinitions } from '../heroes/data/heroDefinitions.ts';
 import { useHeroStore } from '../heroes/store/heroStore.ts';
+import { ensureHeroPersonality } from '../heroes/domain/personality.ts';
+import {
+  runAutonomousCombat,
+  stepAutonomousCombat,
+} from '../ai/domain/autonomousCombat.ts';
+import type { DecisionContextResolver, DecisionTrace } from '../ai/domain/types.ts';
 import { SANDBOX_ENEMIES } from './data/enemyDefinitions.ts';
-import { getCurrentActor, runCombat, stepCombat } from './domain/combatEngine.ts';
+import { getCurrentActor } from './domain/combatEngine.ts';
 import { initializeCombat } from './domain/initialization.ts';
 import type { CombatState, CombatUnit } from './domain/types.ts';
 
@@ -68,7 +74,9 @@ function TeamPanel({ title, units, activeId }: { title: string; units: readonly 
 export function ArchivePage() {
   const roster = useHeroStore((state) => state.roster);
   const formation = useHeroStore((state) => state.formation);
+  const teamStrategy = useHeroStore((state) => state.teamStrategy);
   const [combat, setCombat] = useState<CombatState | null>(null);
+  const [lastDecision, setLastDecision] = useState<DecisionTrace | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const startBattle = () => {
@@ -77,6 +85,7 @@ export function ArchivePage() {
         seed: 13_337,
         maxRounds: 50,
       }));
+      setLastDecision(null);
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Combat could not be initialized');
@@ -86,6 +95,28 @@ export function ArchivePage() {
   const actor = combat?.result.outcome === 'ongoing' ? getCurrentActor(combat) : null;
   const allies = combat?.units.filter((unit) => unit.side === 'allies') ?? [];
   const enemies = combat?.units.filter((unit) => unit.side === 'enemies') ?? [];
+  const resolveDecisionContext: DecisionContextResolver = (heroInstanceId) => {
+    const instance = roster.find((hero) => hero.id === heroInstanceId);
+    const definition = instance
+      ? heroDefinitions.find((hero) => hero.id === instance.definitionId)
+      : undefined;
+    if (!instance) throw new Error(`Hero ${heroInstanceId} is missing from the roster`);
+    return { personality: ensureHeroPersonality(instance, definition), teamStrategy };
+  };
+
+  const nextTurn = () => {
+    if (!combat) return;
+    const step = stepAutonomousCombat(combat, resolveDecisionContext);
+    setCombat(step.state);
+    setLastDecision(step.decision);
+  };
+
+  const autoResolve = () => {
+    if (!combat) return;
+    const result = runAutonomousCombat(combat, resolveDecisionContext);
+    setCombat(result.state);
+    setLastDecision(result.decisions[result.decisions.length - 1] ?? null);
+  };
 
   return (
     <div className="mx-auto max-w-[1440px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -103,7 +134,7 @@ export function ArchivePage() {
               <Button
                 variant="secondary"
                 disabled={combat.result.outcome !== 'ongoing'}
-                onClick={() => setCombat((current) => current ? stepCombat(current) : current)}
+                onClick={nextTurn}
                 leftIcon={<SkipForward size={15} />}
               >
                 Next Turn
@@ -111,12 +142,12 @@ export function ArchivePage() {
               <Button
                 variant="gold"
                 disabled={combat.result.outcome !== 'ongoing'}
-                onClick={() => setCombat((current) => current ? runCombat(current) : current)}
+                onClick={autoResolve}
                 leftIcon={<Zap size={15} />}
               >
                 Auto Resolve
               </Button>
-              <Button variant="ghost" onClick={() => { setCombat(null); setError(null); }} leftIcon={<RotateCcw size={15} />}>
+              <Button variant="ghost" onClick={() => { setCombat(null); setLastDecision(null); setError(null); }} leftIcon={<RotateCcw size={15} />}>
                 Reset Battle
               </Button>
             </>
@@ -163,6 +194,27 @@ export function ArchivePage() {
             <TeamPanel title="Allied Party" units={allies} activeId={actor?.id} />
 
             <Card className="order-last flex max-h-[720px] min-h-[360px] flex-col overflow-hidden p-4 xl:order-none">
+              <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#918BA5]">Autonomous Decision</h2>
+              {lastDecision ? (
+                <div className="mb-4 rounded-lg border border-violet-500/30 bg-violet-950/20 p-3">
+                  <p className="text-xs font-bold text-[#F4F1FA]">{lastDecision.reason}</p>
+                  <div className="mt-3 space-y-2">
+                    {lastDecision.candidates.slice(0, 3).map((candidate) => (
+                      <div key={`${candidate.action.type}:${candidate.action.skillId ?? ''}:${candidate.action.targetId}`} className="rounded bg-[#0f0d1f] p-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-semibold text-[#B8B1C9]">{candidate.action.skillId ?? candidate.action.type}</span>
+                          <span className="text-xs font-bold text-[#D6B36A]">{candidate.finalUtility}</span>
+                        </div>
+                        <p className="mt-1 text-[9px] text-[#5f5875]">
+                          Base {candidate.baseUtility} · Personality {candidate.personalityContribution >= 0 ? '+' : ''}{candidate.personalityContribution} · Strategy {candidate.teamStrategyContribution >= 0 ? '+' : ''}{candidate.teamStrategyContribution} · Learned {candidate.learnedPreferenceContribution >= 0 ? '+' : ''}{candidate.learnedPreferenceContribution}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="mb-4 text-xs text-[#5f5875]">Advance one turn to inspect the decision trace.</p>
+              )}
               <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#918BA5]">Combat Events</h2>
               <div className="flex-1 space-y-2 overflow-y-auto pr-1" aria-live="polite">
                 {[...combat.events].reverse().map((event) => (

@@ -96,7 +96,7 @@ export function generateHeroInstances(
     const id = generateId();
     if (generatedIds.has(id)) throw new Error('Generated hero instance IDs must be unique');
     generatedIds.add(id);
-    generated.push(createHeroInstance(definition, id));
+    generated.push(createHeroInstance(definition, id, random));
   }
   return generated;
 }

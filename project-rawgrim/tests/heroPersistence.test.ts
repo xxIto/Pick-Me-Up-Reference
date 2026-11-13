@@ -8,6 +8,8 @@ import {
   migrateGameState,
   parsePersistedGameState,
 } from '../src/state/gamePersistence.ts';
+import { migrateLegacyPersonality } from '../src/features/heroes/domain/personality.ts';
+import { heroDefinitions } from '../src/features/heroes/data/heroDefinitions.ts';
 
 const validState = {
   version: HERO_SAVE_VERSION,
@@ -72,11 +74,35 @@ describe('hero save validation', () => {
 
 describe('game save migration', () => {
   it('preserves a version-one roster and formation while adding crystals', () => {
-    expect(migrateGameState(validState, HERO_SAVE_VERSION, 320)).toEqual({
-      ...validState,
+    const migrated = migrateGameState(validState, HERO_SAVE_VERSION, 320);
+
+    expect(migrated).toEqual(expect.objectContaining({
       version: GAME_SAVE_VERSION,
+      formation: validState.formation,
       crystals: 320,
-    });
+      teamStrategy: 'Balanced',
+    }));
+    expect(migrated?.roster[0]).toEqual(expect.objectContaining(validState.roster[0]));
+    const traitId = heroDefinitions.find((hero) => hero.id === 'valdris-ashen-blade')?.trait.id;
+    expect(migrated?.roster[0].personality).toEqual(
+      migrateLegacyPersonality('hero-1', traitId),
+    );
+  });
+
+  it('migrates version-two game saves with a deterministic identity and balanced strategy', () => {
+    const versionTwo = {
+      ...validState,
+      version: 2,
+      crystals: 480,
+    };
+
+    const first = migrateGameState(versionTwo, 2, 0);
+    const second = migrateGameState(versionTwo, 2, 999);
+
+    expect(first).toEqual(second);
+    expect(first?.teamStrategy).toBe('Balanced');
+    expect(first?.crystals).toBe(480);
+    expect(first?.roster[0].personality?.identityId).toBe('personality:hero-1');
   });
 
   it('round-trips a current game save without losing summoned heroes or crystals', () => {
@@ -84,11 +110,16 @@ describe('game save migration', () => {
       ...validState,
       version: GAME_SAVE_VERSION,
       crystals: 220,
+      teamStrategy: 'Defensive' as const,
       roster: [
-        ...validState.roster,
+        {
+          ...validState.roster[0],
+          personality: migrateLegacyPersonality('hero-1'),
+        },
         {
           id: 'summoned-1', definitionId: 'tovin-ratcatcher', level: 1,
           experience: 0, currentHp: 510, status: 'Ready' as const,
+          personality: migrateLegacyPersonality('summoned-1', 'ratcatcher-instinct'),
         },
       ],
     };
@@ -97,6 +128,42 @@ describe('game save migration', () => {
   });
 
   it('rejects a malformed crystal balance', () => {
-    expect(parsePersistedGameState({ ...validState, version: GAME_SAVE_VERSION, crystals: -1 })).toBeNull();
+    expect(parsePersistedGameState({
+      ...validState,
+      version: GAME_SAVE_VERSION,
+      crystals: -1,
+      teamStrategy: 'Balanced',
+    })).toBeNull();
+  });
+
+  it('rejects an unknown team strategy in a current save', () => {
+    expect(parsePersistedGameState({
+      ...validState,
+      version: GAME_SAVE_VERSION,
+      crystals: 100,
+      teamStrategy: 'Reckless',
+    })).toBeNull();
+  });
+
+  it('rejects duplicate personality identities in a current save', () => {
+    const sharedPersonality = migrateLegacyPersonality('shared');
+    expect(parsePersistedGameState({
+      ...validState,
+      version: GAME_SAVE_VERSION,
+      crystals: 100,
+      teamStrategy: 'Balanced',
+      roster: [
+        { ...validState.roster[0], personality: sharedPersonality },
+        {
+          id: 'hero-2',
+          definitionId: 'tovin-ratcatcher',
+          level: 1,
+          experience: 0,
+          currentHp: 510,
+          status: 'Ready',
+          personality: sharedPersonality,
+        },
+      ],
+    })).toBeNull();
   });
 });

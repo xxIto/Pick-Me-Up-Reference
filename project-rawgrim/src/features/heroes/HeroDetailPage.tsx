@@ -5,6 +5,7 @@ import { heroDefinitions } from './data/heroDefinitions.ts';
 import { getSkillsByIds } from './data/heroSkills.ts';
 import { getAssignedHeroIds } from './domain/heroRules.ts';
 import { resolveHero } from './domain/roster.ts';
+import { ensureHeroPersonality } from './domain/personality.ts';
 import { useHeroStore } from './store/heroStore.ts';
 
 const STAT_ICONS = {
@@ -34,6 +35,7 @@ export function HeroDetailPage() {
   const { instance: heroInstance, definition, stats } = hero;
   const deployed = getAssignedHeroIds(formation).includes(heroInstance.id);
   const skills = getSkillsByIds(definition.skillIds);
+  const personality = ensureHeroPersonality(heroInstance, definition);
   const experienceToNextLevel = heroInstance.level * 100;
 
   return (
@@ -93,6 +95,21 @@ export function HeroDetailPage() {
             <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-[#F4F1FA]">Personality</h2>
             <p className="font-semibold text-[#D6B36A]">{definition.trait.name}</p>
             <p className="mt-1 text-sm leading-6 text-[#918BA5]">{definition.trait.description}</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {Object.entries(personality.innate).map(([dimension, value]) => (
+                <div key={dimension}>
+                  <div className="mb-1 flex justify-between text-[10px] uppercase tracking-wide">
+                    <span className="text-[#918BA5]">{dimension.replace(/([A-Z])/g, ' $1')}</span>
+                    <span className="font-bold text-violet-300">{value}</span>
+                  </div>
+                  <ProgressBar value={value} max={100} color="violet" height="xs" />
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 rounded-lg border border-dashed border-[#2e2a44] bg-[#0f0d1f] p-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#5f5875]">Learned behavior</p>
+              <p className="mt-1 text-xs text-[#918BA5]">Neutral baseline. Persistent adaptation arrives in TASK 005B.</p>
+            </div>
           </Card>
         </div>
 
