@@ -1,6 +1,7 @@
 import { Menu, Coins, Gem, Zap } from 'lucide-react';
 import { ResourceDisplay } from '../ui/index.tsx';
 import { mockPlayer, mockResources } from '../../data/mockData.ts';
+import { useHeroStore } from '../../features/heroes/store/heroStore.ts';
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -8,7 +9,8 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { name, level } = mockPlayer;
-  const { gold, crystals, energy, maxEnergy } = mockResources;
+  const { gold, energy, maxEnergy } = mockResources;
+  const crystals = useHeroStore((state) => state.crystals);
 
   return (
     <header className="sticky top-0 z-10 h-14 bg-[#0e0c1a]/90 backdrop-blur-sm border-b border-[#1e1b2e] flex items-center px-4 gap-4 shrink-0">
