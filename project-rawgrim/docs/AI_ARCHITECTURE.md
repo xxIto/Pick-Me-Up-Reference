@@ -10,6 +10,8 @@ TASK 005C adds persistent episodic memory and compact enemy knowledge. Memory fo
 
 TASK 005D adds directional relationships, deployed leadership, and multi-axis party chemistry. Social state is formed after eligible completed battles and remains a separate Utility AI input.
 
+TASK 005F adds an isolated headless simulation layer. It composes the existing seeded combat, AI, learning-observation, memory-recall, and social-context functions without committing adaptive state. Streaming metrics and bounded traces make matched-seed comparisons reproducible without retaining every combat log.
+
 ## Hero personality state
 
 Every new `HeroInstance` receives a `HeroPersonalityState` containing:
@@ -152,3 +154,6 @@ Candidate evaluation contains no random calls and does not mutate combat or pers
 - The memory duplicate fingerprint can rarely reject a new session through a hash collision; this is the bounded-storage trade-off.
 - The relationship duplicate fingerprint has the same rare collision trade-off in exchange for fixed save growth.
 - The project currently has no production progression battle route, so the persistent commit action is available but intentionally unused by the sandbox.
+- TASK 005E legacy/permadeath and survivor-consequence systems are not present in this repository; TASK 005F reports that gap instead of fabricating validation results.
+- Simulation reports use Wilson intervals for rates and conservative death attribution. A legal alternative is not labeled death-preventing without a controlled counterfactual replay.
+- Large browser batches yield between chunks and support cancellation, but Node execution remains preferred for 10,000-battle performance work.

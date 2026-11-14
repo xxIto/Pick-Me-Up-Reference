@@ -8,6 +8,7 @@ import { TowerPage } from './features/tower/TowerPage.tsx';
 import { ExpeditionPage } from './features/progression/ExpeditionPage.tsx';
 import { InventoryPage } from './features/inventory/InventoryPage.tsx';
 import { ArchivePage } from './features/combat/ArchivePage.tsx';
+import { SimulationLabPage } from './features/simulation/SimulationLabPage.tsx';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="expedition" element={<ExpeditionPage />} />
           <Route path="inventory"  element={<InventoryPage />} />
           <Route path="archive"    element={<ArchivePage />} />
+          <Route path="dev/simulation-lab" element={<SimulationLabPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
