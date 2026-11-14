@@ -12,6 +12,7 @@ import type { HeroPersonalityState, TeamStrategy } from '../../heroes/domain/per
 import { runLearningCombat } from './experienceCollector.ts';
 import { applyCombatExperience } from './learningEngine.ts';
 import type { LearningUpdate } from './types.ts';
+import { normalizeMemoryProfile } from '../../memory/domain/memoryProfile.ts';
 
 export interface LearningLaboratoryOptions {
   roster: readonly HeroInstance[];
@@ -67,7 +68,11 @@ function createResolver(
       ? definitions.find((candidate) => candidate.id === hero.definitionId)
       : undefined;
     if (!hero) throw new Error(`Laboratory hero ${heroInstanceId} is missing`);
-    return { personality: ensureHeroPersonality(hero, definition), teamStrategy };
+    return {
+      personality: ensureHeroPersonality(hero, definition),
+      memoryProfile: normalizeMemoryProfile(hero.memory, hero.id),
+      teamStrategy,
+    };
   };
 }
 

@@ -26,6 +26,9 @@ import type {
   CombatExperience,
   LearningUpdate,
 } from '../../learning/domain/types.ts';
+import { formHeroMemories } from '../../memory/domain/memoryFormation.ts';
+import { normalizeMemoryProfile } from '../../memory/domain/memoryProfile.ts';
+import type { EpisodicMemory, MemoryFormationSource } from '../../memory/domain/types.ts';
 
 interface HeroStoreState {
   version: typeof GAME_SAVE_VERSION;
@@ -38,12 +41,19 @@ interface HeroStoreState {
   summon: (count: SummonCount) => Promise<SummonTransactionResult>;
   setTeamStrategy: (strategy: TeamStrategy) => void;
   commitLearningExperience: (experience: CombatExperience) => LearningCommitResult;
+  commitCombatMemory: (source: MemoryFormationSource) => MemoryCommitResult;
 }
 
 export interface LearningCommitResult {
   applied: boolean;
   duplicate: boolean;
   updates: readonly LearningUpdate[];
+}
+
+export interface MemoryCommitResult {
+  applied: boolean;
+  duplicate: boolean;
+  createdMemories: readonly EpisodicMemory[];
 }
 
 const STORAGE_KEY = 'rawgrim-hero-state';
@@ -143,6 +153,24 @@ export const useHeroStore = create<HeroStoreState>()(
           applied: changed,
           duplicate: sawRelevantHero && allRelevantHeroesDuplicate,
           updates,
+        };
+      },
+      commitCombatMemory: (source) => {
+        const hero = get().roster.find((candidate) => candidate.id === source.heroInstanceId);
+        if (!hero) return { applied: false, duplicate: false, createdMemories: [] };
+        const result = formHeroMemories(normalizeMemoryProfile(hero.memory, hero.id), source);
+        if (result.duplicate || !source.eligibleForPersistence || source.finalState.result.outcome === 'ongoing') {
+          return { applied: false, duplicate: result.duplicate, createdMemories: [] };
+        }
+        set((state) => ({
+          roster: state.roster.map((candidate) => candidate.id === hero.id
+            ? { ...candidate, memory: result.profile }
+            : candidate),
+        }));
+        return {
+          applied: true,
+          duplicate: false,
+          createdMemories: result.createdMemories,
         };
       },
     }),

@@ -9,6 +9,8 @@ import type { CombatAction, CombatState, CombatUnit } from '../../combat/domain/
 import type { PersonalityDimensions } from '../../heroes/domain/personalityTypes.ts';
 import { extractLearningContext } from '../../learning/domain/context.ts';
 import { calculateContextualLearnedContribution } from '../../learning/domain/learningEngine.ts';
+import { recallMemories } from '../../memory/domain/memoryRecall.ts';
+import type { MemoryRecallContext } from '../../memory/domain/types.ts';
 import type { CandidateUtility, DecisionContext, DecisionTrace } from './types.ts';
 import { getActionCategory } from './actionCategory.ts';
 
@@ -108,6 +110,26 @@ function calculateStrategyContribution(action: CombatAction, context: DecisionCo
   return clamp(raw * context.personality.innate.discipline / 100, -15, 15);
 }
 
+function createMemoryRecallContext(
+  state: CombatState,
+  actor: CombatUnit,
+  action: CombatAction,
+): MemoryRecallContext {
+  const features = extractLearningContext(state, actor, action);
+  const target = getUnit(state, action.targetId);
+  return {
+    heroInstanceId: actor.sourceId,
+    enemyCategoryIds: state.units
+      .filter((unit) => unit.side !== actor.side && unit.alive)
+      .map((unit) => unit.sourceId),
+    participantIds: target ? [target.sourceId] : [],
+    threatLevel: features.enemyThreat,
+    actorHpBand: features.actorHpCritical > 0 ? 'critical' : features.actorHpLow > 0 ? 'low' : 'medium',
+    actionCategory: getActionCategory(action),
+    allySurvivalRisk: features.allySurvivalRisk,
+  };
+}
+
 export function scoreCandidateAction(
   state: CombatState,
   actor: CombatUnit,
@@ -122,13 +144,18 @@ export function scoreCandidateAction(
     context.personality.emotion.anger,
   );
   const teamStrategyContribution = calculateStrategyContribution(action, context);
+  const learningContext = extractLearningContext(state, actor, action);
   const learnedPreferenceContribution = calculateContextualLearnedContribution(
     context.personality,
     getActionCategory(action),
-    extractLearningContext(state, actor, action),
+    learningContext,
   );
+  const recalled = context.memoryProfile
+    ? recallMemories(context.memoryProfile, createMemoryRecallContext(state, actor, action))
+    : { memories: [], totalUtilityContribution: 0 };
+  const memoryContribution = recalled.totalUtilityContribution;
   const finalUtility = clamp(
-    baseUtility + personalityContribution + teamStrategyContribution + learnedPreferenceContribution,
+    baseUtility + personalityContribution + teamStrategyContribution + learnedPreferenceContribution + memoryContribution,
     -50,
     150,
   );
@@ -138,6 +165,8 @@ export function scoreCandidateAction(
     personalityContribution: roundScore(personalityContribution),
     teamStrategyContribution: roundScore(teamStrategyContribution),
     learnedPreferenceContribution: roundScore(learnedPreferenceContribution),
+    memoryContribution: roundScore(memoryContribution),
+    recalledMemories: recalled.memories,
     finalUtility: roundScore(finalUtility),
     summary: `${getActionCategory(action)} utility ${roundScore(finalUtility)}`,
   };
@@ -157,6 +186,7 @@ export function decideCombatAction(state: CombatState, context: DecisionContext)
     selectedAction: selected.action,
     selectedTargetId: selected.action.targetId,
     candidates,
+    recalledMemories: selected.recalledMemories,
     reason: `Selected ${actionKey(selected.action)} with the highest bounded utility (${selected.finalUtility}).`,
   };
 }

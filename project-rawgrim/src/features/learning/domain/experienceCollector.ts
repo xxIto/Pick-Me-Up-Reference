@@ -35,6 +35,7 @@ function createObservation(
   actor: CombatUnit,
   decision: DecisionTrace,
   sessionId: string,
+  observationSequence: number,
 ): LearningObservation {
   const action = decision.selectedAction;
   const targetBefore = getUnit(before, action.targetId);
@@ -50,9 +51,12 @@ function createObservation(
   return {
     heroInstanceId: actor.sourceId,
     sessionId,
+    observationSequence,
+    round: before.round,
     actorClass: actor.class as HeroClass,
     context: extractLearningContext(before, actor, action),
     selectedCategory: category,
+    selectedAction: { ...action },
     validAlternativeCategories: [...new Set(
       decision.candidates.map((candidate) => getActionCategory(candidate.action)),
     )].filter((candidate) => candidate !== category),
@@ -102,7 +106,14 @@ export function runLearningCombat(
     }
 
     if (actor?.alive && actor.side === 'allies' && actor.class !== 'Enemy' && step.decision) {
-      const observation = createObservation(before, step.state, actor, step.decision, options.sessionId);
+      const observation = createObservation(
+        before,
+        step.state,
+        actor,
+        step.decision,
+        options.sessionId,
+        observations.length,
+      );
       observations.push(observation);
       if (observation.selectedCategory === 'defense') {
         pendingDefense.set(actor.sourceId, observations.length - 1);
@@ -117,6 +128,7 @@ export function runLearningCombat(
   const defeatedAllies = state.units.filter((unit) => unit.side === 'allies' && !unit.alive);
   const finalized = observations.map((observation) => ({
     ...observation,
+    selectedAction: { ...observation.selectedAction },
     context: { ...observation.context },
     validAlternativeCategories: [...observation.validAlternativeCategories],
     validCandidateActions: observation.validCandidateActions.map((action) => ({ ...action })),

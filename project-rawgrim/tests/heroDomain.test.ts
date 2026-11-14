@@ -41,6 +41,8 @@ describe('hero instances', () => {
     }));
     expect(hero.personality?.identityId).toBe('personality:owned-valdris');
     expect(hero.personality?.innateTraitId).toBe(heroDefinitions[0].trait.id);
+    expect(hero.memory?.ownerHeroId).toBe('owned-valdris');
+    expect(hero.memory?.memories).toHaveLength(0);
   });
 
   it('calculates level growth without mutating the definition', () => {

@@ -7,6 +7,8 @@ import { getAssignedHeroIds } from './domain/heroRules.ts';
 import { resolveHero } from './domain/roster.ts';
 import { ensureHeroPersonality } from './domain/personality.ts';
 import { useHeroStore } from './store/heroStore.ts';
+import { HeroChronicle } from '../memory/components/HeroChronicle.tsx';
+import { normalizeMemoryProfile } from '../memory/domain/memoryProfile.ts';
 
 const STAT_ICONS = {
   hp: Heart,
@@ -36,6 +38,7 @@ export function HeroDetailPage() {
   const deployed = getAssignedHeroIds(formation).includes(heroInstance.id);
   const skills = getSkillsByIds(definition.skillIds);
   const personality = ensureHeroPersonality(heroInstance, definition);
+  const memory = normalizeMemoryProfile(heroInstance.memory, heroInstance.id);
   const experienceToNextLevel = heroInstance.level * 100;
 
   return (
@@ -147,6 +150,7 @@ export function HeroDetailPage() {
           </Card>
         </div>
       </div>
+      <HeroChronicle profile={memory} />
     </div>
   );
 }

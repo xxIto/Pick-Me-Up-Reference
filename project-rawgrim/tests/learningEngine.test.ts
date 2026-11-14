@@ -28,9 +28,12 @@ function observation(overrides: Partial<LearningObservation> = {}): LearningObse
   return {
     heroInstanceId: 'hero-a',
     sessionId: 'battle-a',
+    observationSequence: 0,
+    round: 1,
     actorClass: 'Warrior',
     context,
     selectedCategory: 'offense',
+    selectedAction: { actorId: 'ally:a', type: 'basic-physical', targetId: 'enemy:a' },
     validAlternativeCategories: ['defense', 'activeSkill'],
     validCandidateActions: [],
     outcome: {

@@ -60,8 +60,9 @@ export function isLearningProfile(value: unknown): value is LearningProfile {
   }
   if (!isFiniteNumber(value.battlesProcessed) ||
     !Number.isSafeInteger(value.battlesProcessed) || value.battlesProcessed < 0) return false;
+  const contextWeights = value.contextWeights;
   return ACTION_CATEGORIES.every((category) => {
-    const weights = value.contextWeights[category];
+    const weights = contextWeights[category];
     return isRecord(weights) && LEARNING_FEATURE_KEYS.every((key) => isFiniteNumber(weights[key]));
   });
 }

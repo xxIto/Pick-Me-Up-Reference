@@ -14,6 +14,7 @@ import { getCurrentActor } from './domain/combatEngine.ts';
 import { initializeCombat } from './domain/initialization.ts';
 import type { CombatState, CombatUnit } from './domain/types.ts';
 import { LearningLaboratory } from '../learning/components/LearningLaboratory.tsx';
+import { normalizeMemoryProfile } from '../memory/domain/memoryProfile.ts';
 
 function CombatUnitCard({ unit, active }: { unit: CombatUnit; active: boolean }) {
   const hpColor = unit.side === 'allies' ? 'violet' : 'rose';
@@ -102,7 +103,11 @@ export function ArchivePage() {
       ? heroDefinitions.find((hero) => hero.id === instance.definitionId)
       : undefined;
     if (!instance) throw new Error(`Hero ${heroInstanceId} is missing from the roster`);
-    return { personality: ensureHeroPersonality(instance, definition), teamStrategy };
+    return {
+      personality: ensureHeroPersonality(instance, definition),
+      memoryProfile: normalizeMemoryProfile(instance.memory, instance.id),
+      teamStrategy,
+    };
   };
 
   const nextTurn = () => {
@@ -209,7 +214,7 @@ export function ArchivePage() {
                           <span className="text-xs font-bold text-[#D6B36A]">{candidate.finalUtility}</span>
                         </div>
                         <p className="mt-1 text-[9px] text-[#5f5875]">
-                          Base {candidate.baseUtility} · Personality {candidate.personalityContribution >= 0 ? '+' : ''}{candidate.personalityContribution} · Strategy {candidate.teamStrategyContribution >= 0 ? '+' : ''}{candidate.teamStrategyContribution} · Learned {candidate.learnedPreferenceContribution >= 0 ? '+' : ''}{candidate.learnedPreferenceContribution}
+                          Base {candidate.baseUtility} · Personality {candidate.personalityContribution >= 0 ? '+' : ''}{candidate.personalityContribution} · Strategy {candidate.teamStrategyContribution >= 0 ? '+' : ''}{candidate.teamStrategyContribution} · Learned {candidate.learnedPreferenceContribution >= 0 ? '+' : ''}{candidate.learnedPreferenceContribution} · Memory {candidate.memoryContribution >= 0 ? '+' : ''}{candidate.memoryContribution}
                         </p>
                       </div>
                     ))}
@@ -217,6 +222,21 @@ export function ArchivePage() {
                 </div>
               ) : (
                 <p className="mb-4 text-xs text-[#5f5875]">Advance one turn to inspect the decision trace.</p>
+              )}
+              {lastDecision && lastDecision.recalledMemories.length > 0 && (
+                <div className="mb-4 rounded-lg border border-amber-700/30 bg-amber-950/10 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#D6B36A]">Recalled memories</p>
+                  <div className="mt-2 space-y-2">
+                    {lastDecision.recalledMemories.map((recalled) => (
+                      <div key={recalled.memory.id} className="text-[10px] leading-4 text-[#918BA5]">
+                        <span className="font-semibold text-[#B8B1C9]">{recalled.memory.title}</span>
+                        {' · '}relevance {recalled.relevanceScore}
+                        {' · '}utility {recalled.utilityContribution >= 0 ? '+' : ''}{recalled.utilityContribution}
+                        <p className="text-[#5f5875]">{recalled.explanation.join(' · ')}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
               <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#918BA5]">Combat Events</h2>
               <div className="flex-1 space-y-2 overflow-y-auto pr-1" aria-live="polite">

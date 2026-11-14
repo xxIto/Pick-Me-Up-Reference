@@ -10,6 +10,7 @@ import {
 } from '../src/state/gamePersistence.ts';
 import { migrateLegacyPersonality } from '../src/features/heroes/domain/personality.ts';
 import { heroDefinitions } from '../src/features/heroes/data/heroDefinitions.ts';
+import { createEmptyMemoryProfile } from '../src/features/memory/domain/memoryProfile.ts';
 
 const validState = {
   version: HERO_SAVE_VERSION,
@@ -87,6 +88,7 @@ describe('game save migration', () => {
     expect(migrated?.roster[0].personality).toEqual(
       migrateLegacyPersonality('hero-1', traitId),
     );
+    expect(migrated?.roster[0].memory).toEqual(createEmptyMemoryProfile('hero-1'));
   });
 
   it('migrates version-two game saves with a deterministic identity and balanced strategy', () => {
@@ -127,6 +129,25 @@ describe('game save migration', () => {
     expect(migrated?.roster[0].personality?.innate).toEqual(versionThree.roster[0].personality.innate);
   });
 
+  it('migrates version-four saves with independent empty memory profiles', () => {
+    const versionFour = {
+      ...validState,
+      version: 4,
+      crystals: 480,
+      teamStrategy: 'Defensive',
+      roster: [{
+        ...validState.roster[0],
+        personality: migrateLegacyPersonality('hero-1'),
+      }],
+    };
+
+    const migrated = migrateGameState(versionFour, 4, 0);
+
+    expect(migrated?.version).toBe(GAME_SAVE_VERSION);
+    expect(migrated?.roster[0].memory).toEqual(createEmptyMemoryProfile('hero-1'));
+    expect(migrated?.roster[0].memory).not.toBe(createEmptyMemoryProfile('another-hero'));
+  });
+
   it('round-trips a current game save without losing summoned heroes or crystals', () => {
     const learnedPersonality = migrateLegacyPersonality('hero-1');
     learnedPersonality.learned.offense = 1.25;
@@ -144,11 +165,31 @@ describe('game save migration', () => {
         {
           ...validState.roster[0],
           personality: learnedPersonality,
+          memory: {
+            ...createEmptyMemoryProfile('hero-1'),
+            memories: [{
+              id: 'memory:hero-1:battle-1:result', ownerHeroId: 'hero-1', sourceId: 'battle-1:result',
+              category: 'Achievement' as const, title: 'Victory remembered',
+              description: 'The party prevailed in the observed encounter.', participantIds: ['ash-hound'],
+              context: {
+                sessionId: 'battle-1', round: 2, encounterLabel: 'Ashen Warband',
+                enemyCategoryIds: ['ash-hound'], combatOutcome: 'victory' as const, threatLevel: 0.8,
+              },
+              facts: { outcome: 'victory' as const, enemyCategoryIds: ['ash-hound'] },
+              significance: {
+                score: 80, severity: 0.6, personalRisk: 0.8,
+                novelty: 1, outcomeImportance: 1, relevance: 1,
+              },
+              eventOrder: 1, relatedMemoryIds: [],
+            }],
+            nextEventOrder: 2,
+          },
         },
         {
           id: 'summoned-1', definitionId: 'tovin-ratcatcher', level: 1,
           experience: 0, currentHp: 510, status: 'Ready' as const,
           personality: migrateLegacyPersonality('summoned-1', 'ratcatcher-instinct'),
+          memory: createEmptyMemoryProfile('summoned-1'),
         },
       ],
     };

@@ -41,9 +41,12 @@ export interface LearningOutcome {
 export interface LearningObservation {
   heroInstanceId: string;
   sessionId: string;
+  observationSequence: number;
+  round: number;
   actorClass: HeroClass;
   context: LearningContextFeatures;
   selectedCategory: ActionCategory;
+  selectedAction: CombatAction;
   validAlternativeCategories: readonly ActionCategory[];
   validCandidateActions: readonly CombatAction[];
   outcome: LearningOutcome;

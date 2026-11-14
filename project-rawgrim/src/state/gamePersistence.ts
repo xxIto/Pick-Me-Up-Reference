@@ -14,8 +14,9 @@ import type {
   HeroPersonalityState,
   TeamStrategy,
 } from '../features/heroes/domain/personalityTypes.ts';
+import { normalizeMemoryProfile } from '../features/memory/domain/memoryProfile.ts';
 
-export const GAME_SAVE_VERSION = 4;
+export const GAME_SAVE_VERSION = 5;
 
 export interface PersistedGameState {
   version: typeof GAME_SAVE_VERSION;
@@ -71,6 +72,7 @@ function normalizeRoster(roster: readonly HeroInstance[]): HeroInstance[] {
       personality: isPersonalityState(hero.personality)
         ? normalizeHeroPersonality(hero.personality)
         : ensureHeroPersonality(hero, definition),
+      memory: normalizeMemoryProfile(hero.memory, hero.id),
     };
   });
 }
@@ -100,6 +102,28 @@ function parseVersionTwoState(value: unknown): Omit<PersistedGameState, 'version
 
 function parseVersionThreeState(value: unknown): Omit<PersistedGameState, 'version'> | null {
   if (!isRecord(value) || value.version !== 3) return null;
+  if (typeof value.crystals !== 'number' || !Number.isInteger(value.crystals) || value.crystals < 0) return null;
+  const teamStrategy = typeof value.teamStrategy === 'string'
+    ? TEAM_STRATEGIES.find((strategy) => strategy === value.teamStrategy)
+    : undefined;
+  if (!teamStrategy) return null;
+  const heroes = parsePersistedHeroState({
+    version: HERO_SAVE_VERSION,
+    roster: value.roster,
+    formation: value.formation,
+  });
+  if (!heroes) return null;
+  const roster = normalizeRoster(heroes.roster);
+  return hasUniquePersonalityIdentities(roster) ? {
+    roster,
+    formation: heroes.formation,
+    crystals: value.crystals,
+    teamStrategy,
+  } : null;
+}
+
+function parseVersionFourState(value: unknown): Omit<PersistedGameState, 'version'> | null {
+  if (!isRecord(value) || value.version !== 4) return null;
   if (typeof value.crystals !== 'number' || !Number.isInteger(value.crystals) || value.crystals < 0) return null;
   const teamStrategy = typeof value.teamStrategy === 'string'
     ? TEAM_STRATEGIES.find((strategy) => strategy === value.teamStrategy)
@@ -154,6 +178,10 @@ export function migrateGameState(
   initialCrystals: number,
 ): PersistedGameState | null {
   if (persistedVersion === GAME_SAVE_VERSION) return parsePersistedGameState(value);
+  if (persistedVersion === 4) {
+    const previous = parseVersionFourState(value);
+    return previous ? { ...previous, version: GAME_SAVE_VERSION } : null;
+  }
   if (persistedVersion === 3) {
     const previous = parseVersionThreeState(value);
     return previous ? { ...previous, version: GAME_SAVE_VERSION } : null;

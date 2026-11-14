@@ -31,6 +31,6 @@ No 3D assets required for the MVP.
 
 ## Hero Intelligence
 
-Heroes use individual multidimensional personalities and deterministic Utility AI. Party strategy influences decisions according to each hero's discipline, but never bypasses combat validation. Heroes develop bounded contextual preferences from eligible completed battles; sandbox and laboratory experiments remain isolated from player progression.
+Heroes use individual multidimensional personalities and deterministic Utility AI. Party strategy influences decisions according to each hero's discipline, but never bypasses combat validation. Heroes develop bounded contextual preferences from eligible completed battles and retain factual episodic memories plus compact enemy knowledge. Recalled memories can influence future tactical utility independently from learned preferences. Sandbox and laboratory experiments remain isolated from player progression.
 
 The accepted domain model, save migration, scoring bounds, and current limitations are documented in [AI_ARCHITECTURE.md](./AI_ARCHITECTURE.md).

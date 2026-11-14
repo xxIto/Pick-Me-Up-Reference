@@ -80,6 +80,7 @@ export interface CombatEvent {
   targetId?: string;
   skillId?: string;
   amount?: number;
+  damageType?: CombatDamageType;
   mitigatedAmount?: number;
   message: string;
 }

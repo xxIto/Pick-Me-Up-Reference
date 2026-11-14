@@ -1,4 +1,5 @@
 import type { HeroPersonalityState } from './personalityTypes.ts';
+import type { HeroMemoryProfile } from '../../memory/domain/types.ts';
 
 export const HERO_CLASSES = ['Warrior', 'Tank', 'Archer', 'Healer'] as const;
 export type HeroClass = (typeof HERO_CLASSES)[number];
@@ -53,6 +54,8 @@ export interface HeroInstance {
   status: HeroStatus;
   /** Optional only for pre-TASK-005A saves; runtime migration supplies it once. */
   personality?: HeroPersonalityState;
+  /** Optional only for saves created before TASK-005C; runtime migration supplies it once. */
+  memory?: HeroMemoryProfile;
 }
 
 export interface PartyFormation {

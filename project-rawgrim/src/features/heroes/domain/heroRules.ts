@@ -7,6 +7,7 @@ import type {
 } from './types.ts';
 import { generatePersonality, migrateLegacyPersonality } from './personality.ts';
 import type { PersonalityRandom } from './personality.ts';
+import { createEmptyMemoryProfile } from '../../memory/domain/memoryProfile.ts';
 
 export const EMPTY_FORMATION: PartyFormation = {
   frontline: [null, null, null],
@@ -32,6 +33,7 @@ export function createHeroInstance(
     personality: personalityRandom
       ? generatePersonality(`personality:${id}`, definition.trait.id, personalityRandom)
       : migrateLegacyPersonality(id, definition.trait.id),
+    memory: createEmptyMemoryProfile(id),
   };
 }
 

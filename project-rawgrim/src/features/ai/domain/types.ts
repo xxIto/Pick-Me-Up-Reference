@@ -3,10 +3,12 @@ import type {
   HeroPersonalityState,
   TeamStrategy,
 } from '../../heroes/domain/personalityTypes.ts';
+import type { HeroMemoryProfile, MemoryContribution } from '../../memory/domain/types.ts';
 
 export interface DecisionContext {
   personality: HeroPersonalityState;
   teamStrategy: TeamStrategy;
+  memoryProfile?: HeroMemoryProfile;
 }
 
 export interface CandidateUtility {
@@ -15,6 +17,8 @@ export interface CandidateUtility {
   personalityContribution: number;
   teamStrategyContribution: number;
   learnedPreferenceContribution: number;
+  memoryContribution: number;
+  recalledMemories: readonly MemoryContribution[];
   finalUtility: number;
   summary: string;
 }
@@ -24,6 +28,7 @@ export interface DecisionTrace {
   selectedAction: CombatAction;
   selectedTargetId: string;
   candidates: readonly CandidateUtility[];
+  recalledMemories: readonly MemoryContribution[];
   reason: string;
 }
 
