@@ -13,6 +13,7 @@ import { runLearningCombat } from './experienceCollector.ts';
 import { applyCombatExperience } from './learningEngine.ts';
 import type { LearningUpdate } from './types.ts';
 import { normalizeMemoryProfile } from '../../memory/domain/memoryProfile.ts';
+import { createPartySocialContexts } from '../../social/domain/socialInfluence.ts';
 
 export interface LearningLaboratoryOptions {
   roster: readonly HeroInstance[];
@@ -21,6 +22,7 @@ export interface LearningLaboratoryOptions {
   enemies: readonly EnemyDefinition[];
   selectedHeroId: string;
   teamStrategy: TeamStrategy;
+  leaderId: string | null;
   seed: number;
   repetitions: number;
 }
@@ -61,7 +63,10 @@ function createResolver(
   roster: readonly HeroInstance[],
   definitions: readonly HeroDefinition[],
   teamStrategy: TeamStrategy,
+  formation: PartyFormation,
+  leaderId: string | null,
 ): DecisionContextResolver {
+  const socialContexts = createPartySocialContexts(roster, formation, leaderId);
   return (heroInstanceId) => {
     const hero = roster.find((candidate) => candidate.id === heroInstanceId);
     const definition = hero
@@ -71,6 +76,7 @@ function createResolver(
     return {
       personality: ensureHeroPersonality(hero, definition),
       memoryProfile: normalizeMemoryProfile(hero.memory, hero.id),
+      social: socialContexts.get(hero.id),
       teamStrategy,
     };
   };
@@ -90,7 +96,7 @@ function evaluateFirstDecision(
   );
   return runAutonomousCombat(
     combat,
-    createResolver(roster, options.definitions, options.teamStrategy),
+    createResolver(roster, options.definitions, options.teamStrategy, formation, options.leaderId),
   ).decisions.find((decision) => decision.heroInstanceId === options.selectedHeroId) ?? null;
 }
 
@@ -120,7 +126,7 @@ export function runLearningLaboratory(options: LearningLaboratoryOptions): Learn
     );
     const result = runLearningCombat(
       combat,
-      createResolver(roster, options.definitions, options.teamStrategy),
+      createResolver(roster, options.definitions, options.teamStrategy, formation, options.leaderId),
       {
         sessionId: `lab:${options.selectedHeroId}:${options.seed}:${index}`,
         eligibleForLearning: true,

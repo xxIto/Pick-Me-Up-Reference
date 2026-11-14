@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Play, RotateCcw, SkipForward, Swords, Zap } from 'lucide-react';
 import { Badge, Button, Card, ProgressBar } from '../../components/ui/index.tsx';
 import { heroDefinitions } from '../heroes/data/heroDefinitions.ts';
@@ -15,6 +15,7 @@ import { initializeCombat } from './domain/initialization.ts';
 import type { CombatState, CombatUnit } from './domain/types.ts';
 import { LearningLaboratory } from '../learning/components/LearningLaboratory.tsx';
 import { normalizeMemoryProfile } from '../memory/domain/memoryProfile.ts';
+import { createPartySocialContexts } from '../social/domain/socialInfluence.ts';
 
 function CombatUnitCard({ unit, active }: { unit: CombatUnit; active: boolean }) {
   const hpColor = unit.side === 'allies' ? 'violet' : 'rose';
@@ -77,6 +78,7 @@ export function ArchivePage() {
   const roster = useHeroStore((state) => state.roster);
   const formation = useHeroStore((state) => state.formation);
   const teamStrategy = useHeroStore((state) => state.teamStrategy);
+  const leaderId = useHeroStore((state) => state.leaderId);
   const [combat, setCombat] = useState<CombatState | null>(null);
   const [lastDecision, setLastDecision] = useState<DecisionTrace | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +99,10 @@ export function ArchivePage() {
   const actor = combat?.result.outcome === 'ongoing' ? getCurrentActor(combat) : null;
   const allies = combat?.units.filter((unit) => unit.side === 'allies') ?? [];
   const enemies = combat?.units.filter((unit) => unit.side === 'enemies') ?? [];
+  const socialContexts = useMemo(
+    () => createPartySocialContexts(roster, formation, leaderId),
+    [roster, formation, leaderId],
+  );
   const resolveDecisionContext: DecisionContextResolver = (heroInstanceId) => {
     const instance = roster.find((hero) => hero.id === heroInstanceId);
     const definition = instance
@@ -106,6 +112,7 @@ export function ArchivePage() {
     return {
       personality: ensureHeroPersonality(instance, definition),
       memoryProfile: normalizeMemoryProfile(instance.memory, instance.id),
+      social: socialContexts.get(instance.id),
       teamStrategy,
     };
   };
@@ -167,7 +174,7 @@ export function ArchivePage() {
         </div>
       )}
 
-      <LearningLaboratory roster={roster} formation={formation} teamStrategy={teamStrategy} />
+      <LearningLaboratory roster={roster} formation={formation} teamStrategy={teamStrategy} leaderId={leaderId} />
 
       {!combat ? (
         <Card className="flex min-h-[420px] flex-col items-center justify-center p-8 text-center" glow>
@@ -206,6 +213,11 @@ export function ArchivePage() {
               {lastDecision ? (
                 <div className="mb-4 rounded-lg border border-violet-500/30 bg-violet-950/20 p-3">
                   <p className="text-xs font-bold text-[#F4F1FA]">{lastDecision.reason}</p>
+                  <p className="mt-1 text-[10px] text-[#918BA5]">
+                    {lastDecision.socialChangedSelection
+                      ? 'Social influence changed the selected action from the non-social ranking.'
+                      : 'Social influence did not change the selected action.'}
+                  </p>
                   <div className="mt-3 space-y-2">
                     {lastDecision.candidates.slice(0, 3).map((candidate) => (
                       <div key={`${candidate.action.type}:${candidate.action.skillId ?? ''}:${candidate.action.targetId}`} className="rounded bg-[#0f0d1f] p-2">
@@ -214,7 +226,7 @@ export function ArchivePage() {
                           <span className="text-xs font-bold text-[#D6B36A]">{candidate.finalUtility}</span>
                         </div>
                         <p className="mt-1 text-[9px] text-[#5f5875]">
-                          Base {candidate.baseUtility} · Personality {candidate.personalityContribution >= 0 ? '+' : ''}{candidate.personalityContribution} · Strategy {candidate.teamStrategyContribution >= 0 ? '+' : ''}{candidate.teamStrategyContribution} · Learned {candidate.learnedPreferenceContribution >= 0 ? '+' : ''}{candidate.learnedPreferenceContribution} · Memory {candidate.memoryContribution >= 0 ? '+' : ''}{candidate.memoryContribution}
+                          Base {candidate.baseUtility} · Personality {candidate.personalityContribution >= 0 ? '+' : ''}{candidate.personalityContribution} · Strategy {candidate.teamStrategyContribution >= 0 ? '+' : ''}{candidate.teamStrategyContribution} · Learned {candidate.learnedPreferenceContribution >= 0 ? '+' : ''}{candidate.learnedPreferenceContribution} · Memory {candidate.memoryContribution >= 0 ? '+' : ''}{candidate.memoryContribution} · Relationship {candidate.relationshipContribution >= 0 ? '+' : ''}{candidate.relationshipContribution} · Leadership {candidate.leadershipContribution >= 0 ? '+' : ''}{candidate.leadershipContribution}
                         </p>
                       </div>
                     ))}
@@ -236,6 +248,14 @@ export function ArchivePage() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+              {lastDecision && lastDecision.socialExplanations.length > 0 && (
+                <div className="mb-4 rounded-lg border border-violet-700/30 bg-violet-950/10 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-violet-300">Social influence</p>
+                  {lastDecision.socialExplanations.map((explanation) => (
+                    <p key={explanation} className="mt-1 text-[10px] leading-4 text-[#918BA5]">{explanation}</p>
+                  ))}
                 </div>
               )}
               <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#918BA5]">Combat Events</h2>

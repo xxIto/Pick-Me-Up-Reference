@@ -11,6 +11,9 @@ import {
 import { migrateLegacyPersonality } from '../src/features/heroes/domain/personality.ts';
 import { heroDefinitions } from '../src/features/heroes/data/heroDefinitions.ts';
 import { createEmptyMemoryProfile } from '../src/features/memory/domain/memoryProfile.ts';
+import { applyRelationshipEvent } from '../src/features/social/domain/relationshipEngine.ts';
+import { createEmptyRelationshipProfile } from '../src/features/social/domain/relationshipProfile.ts';
+import type { RelationshipEvent } from '../src/features/social/domain/types.ts';
 
 const validState = {
   version: HERO_SAVE_VERSION,
@@ -89,6 +92,8 @@ describe('game save migration', () => {
       migrateLegacyPersonality('hero-1', traitId),
     );
     expect(migrated?.roster[0].memory).toEqual(createEmptyMemoryProfile('hero-1'));
+    expect(migrated?.roster[0].relationships).toEqual(createEmptyRelationshipProfile('hero-1'));
+    expect(migrated?.leaderId).toBeNull();
   });
 
   it('migrates version-two game saves with a deterministic identity and balanced strategy', () => {
@@ -148,6 +153,24 @@ describe('game save migration', () => {
     expect(migrated?.roster[0].memory).not.toBe(createEmptyMemoryProfile('another-hero'));
   });
 
+  it('migrates version-five memory saves with neutral relationships and no fabricated leader', () => {
+    const versionFive = {
+      ...validState,
+      version: 5,
+      crystals: 480,
+      teamStrategy: 'Balanced',
+      roster: [{
+        ...validState.roster[0],
+        personality: migrateLegacyPersonality('hero-1'),
+        memory: createEmptyMemoryProfile('hero-1'),
+      }],
+    };
+
+    const migrated = migrateGameState(versionFive, 5, 0);
+    expect(migrated?.leaderId).toBeNull();
+    expect(migrated?.roster[0].relationships).toEqual(createEmptyRelationshipProfile('hero-1'));
+  });
+
   it('round-trips a current game save without losing summoned heroes or crystals', () => {
     const learnedPersonality = migrateLegacyPersonality('hero-1');
     learnedPersonality.learned.offense = 1.25;
@@ -156,11 +179,18 @@ describe('game save migration', () => {
       learnedPersonality.learning.battlesProcessed = 1;
       learnedPersonality.learning.processedBattleBits[0] = 4;
     }
+    const relationshipEvent: RelationshipEvent = {
+      id: 'relationship-1', sourceId: 'battle-1:shared', type: 'shared-battle',
+      ownerHeroId: 'hero-1', targetHeroId: 'summoned-1', sessionId: 'battle-1', round: 2,
+      changes: { familiarity: 2, sharedExperienceCount: 1 }, memoryIds: [],
+      description: 'Completed a meaningful combat encounter together.', eventOrder: 1,
+    };
     const state = {
       ...validState,
       version: GAME_SAVE_VERSION,
       crystals: 220,
       teamStrategy: 'Defensive' as const,
+      leaderId: 'hero-1',
       roster: [
         {
           ...validState.roster[0],
@@ -184,17 +214,32 @@ describe('game save migration', () => {
             }],
             nextEventOrder: 2,
           },
+          relationships: applyRelationshipEvent(createEmptyRelationshipProfile('hero-1'), relationshipEvent),
         },
         {
           id: 'summoned-1', definitionId: 'tovin-ratcatcher', level: 1,
           experience: 0, currentHp: 510, status: 'Ready' as const,
           personality: migrateLegacyPersonality('summoned-1', 'ratcatcher-instinct'),
           memory: createEmptyMemoryProfile('summoned-1'),
+          relationships: createEmptyRelationshipProfile('summoned-1'),
         },
       ],
     };
 
     expect(parsePersistedGameState(JSON.parse(JSON.stringify(state)))).toEqual(state);
+  });
+
+  it('clears invalid persisted leadership without deleting the save', () => {
+    const parsed = parsePersistedGameState({
+      ...validState,
+      version: GAME_SAVE_VERSION,
+      crystals: 100,
+      teamStrategy: 'Balanced',
+      leaderId: 'reserve-or-missing',
+    });
+
+    expect(parsed?.leaderId).toBeNull();
+    expect(parsed?.roster).toHaveLength(1);
   });
 
   it('rejects a malformed crystal balance', () => {

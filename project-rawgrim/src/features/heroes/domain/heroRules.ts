@@ -8,6 +8,7 @@ import type {
 import { generatePersonality, migrateLegacyPersonality } from './personality.ts';
 import type { PersonalityRandom } from './personality.ts';
 import { createEmptyMemoryProfile } from '../../memory/domain/memoryProfile.ts';
+import { createEmptyRelationshipProfile } from '../../social/domain/relationshipProfile.ts';
 
 export const EMPTY_FORMATION: PartyFormation = {
   frontline: [null, null, null],
@@ -34,6 +35,7 @@ export function createHeroInstance(
       ? generatePersonality(`personality:${id}`, definition.trait.id, personalityRandom)
       : migrateLegacyPersonality(id, definition.trait.id),
     memory: createEmptyMemoryProfile(id),
+    relationships: createEmptyRelationshipProfile(id),
   };
 }
 

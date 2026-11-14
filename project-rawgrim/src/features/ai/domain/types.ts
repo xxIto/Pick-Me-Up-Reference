@@ -4,11 +4,13 @@ import type {
   TeamStrategy,
 } from '../../heroes/domain/personalityTypes.ts';
 import type { HeroMemoryProfile, MemoryContribution } from '../../memory/domain/types.ts';
+import type { SocialDecisionContext } from '../../social/domain/types.ts';
 
 export interface DecisionContext {
   personality: HeroPersonalityState;
   teamStrategy: TeamStrategy;
   memoryProfile?: HeroMemoryProfile;
+  social?: SocialDecisionContext;
 }
 
 export interface CandidateUtility {
@@ -19,6 +21,10 @@ export interface CandidateUtility {
   learnedPreferenceContribution: number;
   memoryContribution: number;
   recalledMemories: readonly MemoryContribution[];
+  relationshipContribution: number;
+  leadershipContribution: number;
+  socialExplanations: readonly string[];
+  utilityWithoutSocial: number;
   finalUtility: number;
   summary: string;
 }
@@ -29,6 +35,8 @@ export interface DecisionTrace {
   selectedTargetId: string;
   candidates: readonly CandidateUtility[];
   recalledMemories: readonly MemoryContribution[];
+  socialExplanations: readonly string[];
+  socialChangedSelection: boolean;
   reason: string;
 }
 

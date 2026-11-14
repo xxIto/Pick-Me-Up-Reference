@@ -2,6 +2,7 @@ import type { HeroInstance, PartyFormation } from '../domain/types.ts';
 import { migrateLegacyPersonality } from '../domain/personality.ts';
 import { heroDefinitions } from './heroDefinitions.ts';
 import { createEmptyMemoryProfile } from '../../memory/domain/memoryProfile.ts';
+import { createEmptyRelationshipProfile } from '../../social/domain/relationshipProfile.ts';
 
 const legacyHeroRoster: HeroInstance[] = [
   { id: 'hero-valdris-001', definitionId: 'valdris-ashen-blade', level: 22, experience: 340, currentHp: 2180, status: 'Ready' },
@@ -22,6 +23,7 @@ export const initialHeroRoster: HeroInstance[] = legacyHeroRoster.map((hero) => 
     ...hero,
     personality: migrateLegacyPersonality(hero.id, definition?.trait.id),
     memory: createEmptyMemoryProfile(hero.id),
+    relationships: createEmptyRelationshipProfile(hero.id),
   };
 });
 

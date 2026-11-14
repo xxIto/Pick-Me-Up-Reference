@@ -14,6 +14,7 @@ describe('learning laboratory', () => {
       enemies: SANDBOX_ENEMIES,
       selectedHeroId: 'hero-valdris-001',
       teamStrategy: 'Balanced' as const,
+      leaderId: null,
       seed: 42,
       repetitions: 2,
     };
@@ -37,6 +38,7 @@ describe('learning laboratory', () => {
       enemies: SANDBOX_ENEMIES,
       selectedHeroId: 'hero-valdris-001',
       teamStrategy: 'Balanced',
+      leaderId: null,
       seed: 77,
       repetitions: 1,
     });

@@ -8,6 +8,8 @@ TASK 005B adds bounded experience-based learning as a separate post-battle layer
 
 TASK 005C adds persistent episodic memory and compact enemy knowledge. Memory formation consumes completed combat evidence, while recall is a read-only input to Utility AI. It does not replace learning or personality.
 
+TASK 005D adds directional relationships, deployed leadership, and multi-axis party chemistry. Social state is formed after eligible completed battles and remains a separate Utility AI input.
+
 ## Hero personality state
 
 Every new `HeroInstance` receives a `HeroPersonalityState` containing:
@@ -25,13 +27,14 @@ New summoned heroes use the gacha engine's injected random source. This makes pr
 
 ## Save migration
 
-The game save schema is version 5.
+The game save schema is version 6.
 
 - Version 1 hero saves retain roster and formation, receive the configured initial crystal balance, deterministic personality profiles, and the `Balanced` strategy.
 - Version 2 game saves retain roster, formation, and crystals, then receive deterministic personality profiles and the `Balanced` strategy.
 - Version 3 saves retain all TASK 005A state and receive independent neutral contextual profiles.
 - Version 4 saves retain personality, learning, strategy, roster, formation, currency, and progression, then receive an independent empty memory profile for every hero.
-- Version 5 saves validate and normalize personality, learning, and bounded memory profiles.
+- Version 5 saves retain personality, learning, and memory, then receive neutral independent relationship profiles and `leaderId: null`.
+- Version 6 saves validate personality, learning, memory, directed relationships, and deployed leadership references.
 - Invalid or unsupported data falls back through the existing Zustand persistence recovery path instead of partially hydrating the store.
 
 ## Utility decision pipeline
@@ -44,8 +47,10 @@ For the current actor, the AI performs the following pure sequence:
 4. Add a team-strategy contribution bounded to -15 through 15. Discipline scales this contribution linearly, so discipline 0 ignores the preference and discipline 100 receives its full weight.
 5. Add the learned preference bias plus the dot product of current context and contextual weights, bounded to -10 through 10.
 6. Recall up to five relevant episodic memories and add their combined contribution, bounded to -15 through 15.
-7. Clamp final utility to -50 through 150.
-8. Select the highest score, using a stable action key as the deterministic tie-breaker.
+7. Add supported relationship contribution, bounded to -8 through 8.
+8. Add leadership-based strategy adherence, bounded to -10 through 10.
+9. Clamp final utility to -50 through 150.
+10. Select the highest score, using a stable action key as the deterministic tie-breaker.
 
 Base utility is bounded to 0 through 100. Current class modifiers are limited to supported behavior:
 
@@ -105,6 +110,29 @@ Recall compares enemy categories, participant IDs, threat similarity, survival r
 
 Retention caps each hero at 100 episodic memories and 50 enemy-knowledge categories. Deterministic pruning preserves major Milestones first, then non-repetitive categories, higher significance, higher relevance, and stable IDs. Enemy knowledge uses encounter and observation density ranking. A fixed 256-bit session fingerprint prevents repeated processing without storing an unlimited source-ID list.
 
+## Relationships, leadership, and party chemistry
+
+Each hero owns a directional `RelationshipProfile`. Familiarity, rivalry, and resentment use 0 through 100. Trust, respect, and affection use -100 through 100 with 0 neutral. Shared experience count is non-negative. A hero retains at most 50 edges and 20 events per edge; a fixed 256-bit session fingerprint prevents repeat processing.
+
+Relationship formation runs only after a completed battle explicitly marked eligible for persistence. Shared participation requires observed threat of at least 0.4 or a defeat and increases familiarity rather than automatic friendship. Meaningful rescue uses the memory system's existing healing and survival-risk thresholds. `severeSelfEndangerment` can produce personality-dependent respect or distrust: disciplined observers and aggressive observers may react differently to the same factual action. Ally loss creates factual history without blame.
+
+Leadership is one nullable deployed hero ID outside the slot-only `PartyFormation` contract. Effectiveness is:
+
+`0.25 discipline + 0.15 courage + 0.10 resolve + 0.15 experience + 0.20 incomingTrust + 0.15 incomingRespect`
+
+Every component is normalized to 0 through 100. Missing, dead, undeployed, or combat-defeated leaders are inactive. Leadership contribution scales the selected strategy direction by effectiveness, actor discipline, trust/resentment toward the leader, and party coordination. It never forces an action.
+
+Party chemistry reports cohesion, coordination, conflict risk, and leadership stability separately. It evaluates directed pairs only among the maximum five deployed heroes. Chemistry exposes no attack, defense, damage, or healing bonus.
+
+- `cohesion = 0.35 normalizedTrust + 0.25 familiarity + 0.20 normalizedAffection + 0.20 personalityCompatibility`
+- `coordination = 0.35 normalizedRespect + 0.25 familiarity + 0.20 personalityCompatibility + 0.20 leadershipEffectiveness`
+- `conflictRisk = 0.60 mean(rivalry, resentment) + 0.40 personalityFriction`
+- `leadershipStability = 0.70 leadershipEffectiveness + 0.30 normalizedTeammateTrust`
+
+The currently supported direct relationship behavior is ally-targeted healing. Trust and affection can raise an equally urgent companion's priority while resentment can lower it; base medical urgency remains the dominant score. If a matching Social memory is recalled for the same target, relationship contribution is halved so the rescue event is not applied at full strength twice.
+
+Decision traces retain both final utility and utility without relationship/leadership components. The sandbox reports whether social influence changed the selected action relative to that deterministic counterfactual ranking.
+
 ## Determinism and immutability
 
 Candidate evaluation contains no random calls and does not mutate combat or personality state. Identical combat state, personality, learned preferences, and strategy produce an identical decision. Step execution and full autonomous execution share the same decision function.
@@ -116,9 +144,11 @@ Candidate evaluation contains no random calls and does not mutate combat or pers
 - Enemy units use a neutral, balanced decision context because persistent enemy personalities are outside this task.
 - Decision traces are intentionally not stored as long-term memories.
 - Memory descriptions are deterministic templates populated only from structured observed facts; no dialogue or emotional interpretation is generated.
-- Social memories retain participant IDs but do not change friendship, loyalty, rivalry, romance, or trust. That behavior is reserved for TASK 005D.
-- Harmful social memories are deferred because the current combat observations do not establish sufficient responsibility or intent.
+- Relationships do not implement romance, dialogue, or automatic friendship labels.
+- Harmful social updates are limited to observed reckless self-endangerment. The current combat observations do not establish abandonment, intent, or responsibility for ally death.
+- Protection, retreat, abandonment, and cooperative-targeting relationship events are deferred because the current combat action set cannot observe them reliably.
 - Sandbox and Learning Laboratory combat can read copied profiles for inspection but never call the persistent memory commit boundary.
+- Sandbox and Learning Laboratory can evaluate social state but never call the persistent relationship commit boundary.
 - The memory duplicate fingerprint can rarely reject a new session through a hash collision; this is the bounded-storage trade-off.
-- The duplicate fingerprint can rarely reject a new session through a hash collision; this is the bounded-memory trade-off.
+- The relationship duplicate fingerprint has the same rare collision trade-off in exchange for fixed save growth.
 - The project currently has no production progression battle route, so the persistent commit action is available but intentionally unused by the sandbox.

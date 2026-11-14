@@ -11,6 +11,7 @@ import { extractLearningContext } from '../../learning/domain/context.ts';
 import { calculateContextualLearnedContribution } from '../../learning/domain/learningEngine.ts';
 import { recallMemories } from '../../memory/domain/memoryRecall.ts';
 import type { MemoryRecallContext } from '../../memory/domain/types.ts';
+import { calculateSocialContribution } from '../../social/domain/socialInfluence.ts';
 import type { CandidateUtility, DecisionContext, DecisionTrace } from './types.ts';
 import { getActionCategory } from './actionCategory.ts';
 
@@ -154,8 +155,26 @@ export function scoreCandidateAction(
     ? recallMemories(context.memoryProfile, createMemoryRecallContext(state, actor, action))
     : { memories: [], totalUtilityContribution: 0 };
   const memoryContribution = recalled.totalUtilityContribution;
+  const socialContribution = context.social
+    ? calculateSocialContribution(
+      state,
+      actor,
+      action,
+      context.teamStrategy,
+      context.personality.innate.discipline,
+      context.social,
+      recalled.memories,
+    )
+    : { relationshipContribution: 0, leadershipContribution: 0, explanations: [] };
+  const rawUtilityWithoutSocial =
+    baseUtility + personalityContribution + teamStrategyContribution + learnedPreferenceContribution + memoryContribution;
+  const utilityWithoutSocial = clamp(
+    rawUtilityWithoutSocial,
+    -50,
+    150,
+  );
   const finalUtility = clamp(
-    baseUtility + personalityContribution + teamStrategyContribution + learnedPreferenceContribution + memoryContribution,
+    rawUtilityWithoutSocial + socialContribution.relationshipContribution + socialContribution.leadershipContribution,
     -50,
     150,
   );
@@ -167,6 +186,10 @@ export function scoreCandidateAction(
     learnedPreferenceContribution: roundScore(learnedPreferenceContribution),
     memoryContribution: roundScore(memoryContribution),
     recalledMemories: recalled.memories,
+    relationshipContribution: roundScore(socialContribution.relationshipContribution),
+    leadershipContribution: roundScore(socialContribution.leadershipContribution),
+    socialExplanations: socialContribution.explanations,
+    utilityWithoutSocial: roundScore(utilityWithoutSocial),
     finalUtility: roundScore(finalUtility),
     summary: `${getActionCategory(action)} utility ${roundScore(finalUtility)}`,
   };
@@ -181,12 +204,17 @@ export function decideCombatAction(state: CombatState, context: DecisionContext)
       actionKey(left.action).localeCompare(actionKey(right.action)));
   const selected = candidates[0];
   if (!selected) return null;
+  const counterfactual = [...candidates].sort((left, right) =>
+    right.utilityWithoutSocial - left.utilityWithoutSocial ||
+    actionKey(left.action).localeCompare(actionKey(right.action)))[0];
   return {
     heroInstanceId: actor.sourceId,
     selectedAction: selected.action,
     selectedTargetId: selected.action.targetId,
     candidates,
     recalledMemories: selected.recalledMemories,
+    socialExplanations: selected.socialExplanations,
+    socialChangedSelection: Boolean(counterfactual && actionKey(counterfactual.action) !== actionKey(selected.action)),
     reason: `Selected ${actionKey(selected.action)} with the highest bounded utility (${selected.finalUtility}).`,
   };
 }

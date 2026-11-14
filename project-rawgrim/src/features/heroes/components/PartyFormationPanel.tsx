@@ -8,6 +8,7 @@ import type { FormationLine, FormationSlot, ResolvedHero } from '../domain/types
 import { TEAM_STRATEGIES } from '../domain/personalityTypes.ts';
 import type { TeamStrategy } from '../domain/personalityTypes.ts';
 import { useHeroStore } from '../store/heroStore.ts';
+import { PartyDynamicsPanel } from '../../social/components/PartyDynamicsPanel.tsx';
 
 interface FormationRowProps {
   line: FormationLine;
@@ -148,6 +149,8 @@ export function PartyFormationPanel() {
           {error}
         </div>
       )}
+
+      <PartyDynamicsPanel />
 
       <FormationRow
         line="frontline"

@@ -9,6 +9,7 @@ import { ensureHeroPersonality } from './domain/personality.ts';
 import { useHeroStore } from './store/heroStore.ts';
 import { HeroChronicle } from '../memory/components/HeroChronicle.tsx';
 import { normalizeMemoryProfile } from '../memory/domain/memoryProfile.ts';
+import { HeroRelationships } from '../social/components/HeroRelationships.tsx';
 
 const STAT_ICONS = {
   hp: Heart,
@@ -151,6 +152,7 @@ export function HeroDetailPage() {
         </div>
       </div>
       <HeroChronicle profile={memory} />
+      <HeroRelationships hero={heroInstance} roster={roster} />
     </div>
   );
 }

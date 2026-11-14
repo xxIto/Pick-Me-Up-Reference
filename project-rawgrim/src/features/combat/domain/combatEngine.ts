@@ -91,6 +91,17 @@ export function getAvailableActions(state: CombatState, actorId?: string): Comba
   for (const skillId of actor.skillIds) {
     const skill = getCombatSkill(skillId);
     if (!skill || (actor.cooldowns[skill.id] ?? 0) > 0) continue;
+    if (skill.target === 'ally' && skill.kind === 'healing') {
+      const injuredAllies = state.units.filter((unit) =>
+        unit.alive && unit.side === actor.side && unit.currentHp < unit.stats.maxHp);
+      actions.push(...injuredAllies.map((target) => ({
+        actorId: actor.id,
+        type: 'skill' as const,
+        targetId: target.id,
+        skillId: skill.id,
+      })));
+      continue;
+    }
     const targetId = skill.target === 'ally' ? healing.targetId
       : skill.target === 'self' ? actor.id
       : offensive.targetId;

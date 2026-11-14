@@ -15,8 +15,10 @@ import type {
   TeamStrategy,
 } from '../features/heroes/domain/personalityTypes.ts';
 import { normalizeMemoryProfile } from '../features/memory/domain/memoryProfile.ts';
+import { normalizeRelationshipProfile } from '../features/social/domain/relationshipProfile.ts';
+import { validateLeaderAssignment } from '../features/social/domain/leadership.ts';
 
-export const GAME_SAVE_VERSION = 5;
+export const GAME_SAVE_VERSION = 6;
 
 export interface PersistedGameState {
   version: typeof GAME_SAVE_VERSION;
@@ -24,6 +26,7 @@ export interface PersistedGameState {
   formation: PartyFormation;
   crystals: number;
   teamStrategy: TeamStrategy;
+  leaderId: string | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -65,6 +68,7 @@ function isPersonalityState(value: unknown): value is HeroPersonalityState {
 }
 
 function normalizeRoster(roster: readonly HeroInstance[]): HeroInstance[] {
+  const validHeroIds = new Set(roster.map((hero) => hero.id));
   return roster.map((hero) => {
     const definition = heroDefinitions.find((candidate) => candidate.id === hero.definitionId);
     return {
@@ -73,6 +77,7 @@ function normalizeRoster(roster: readonly HeroInstance[]): HeroInstance[] {
         ? normalizeHeroPersonality(hero.personality)
         : ensureHeroPersonality(hero, definition),
       memory: normalizeMemoryProfile(hero.memory, hero.id),
+      relationships: normalizeRelationshipProfile(hero.relationships, hero.id, validHeroIds),
     };
   });
 }
@@ -83,7 +88,7 @@ function hasUniquePersonalityIdentities(roster: readonly HeroInstance[]): boolea
     new Set(identities).size === identities.length;
 }
 
-function parseVersionTwoState(value: unknown): Omit<PersistedGameState, 'version' | 'teamStrategy'> | null {
+function parseVersionTwoState(value: unknown): Omit<PersistedGameState, 'version' | 'teamStrategy' | 'leaderId'> | null {
   if (!isRecord(value) || value.version !== 2) return null;
   if (typeof value.crystals !== 'number' || !Number.isInteger(value.crystals) || value.crystals < 0) return null;
   const heroes = parsePersistedHeroState({
@@ -100,7 +105,7 @@ function parseVersionTwoState(value: unknown): Omit<PersistedGameState, 'version
   } : null;
 }
 
-function parseVersionThreeState(value: unknown): Omit<PersistedGameState, 'version'> | null {
+function parseVersionThreeState(value: unknown): Omit<PersistedGameState, 'version' | 'leaderId'> | null {
   if (!isRecord(value) || value.version !== 3) return null;
   if (typeof value.crystals !== 'number' || !Number.isInteger(value.crystals) || value.crystals < 0) return null;
   const teamStrategy = typeof value.teamStrategy === 'string'
@@ -122,8 +127,30 @@ function parseVersionThreeState(value: unknown): Omit<PersistedGameState, 'versi
   } : null;
 }
 
-function parseVersionFourState(value: unknown): Omit<PersistedGameState, 'version'> | null {
+function parseVersionFourState(value: unknown): Omit<PersistedGameState, 'version' | 'leaderId'> | null {
   if (!isRecord(value) || value.version !== 4) return null;
+  if (typeof value.crystals !== 'number' || !Number.isInteger(value.crystals) || value.crystals < 0) return null;
+  const teamStrategy = typeof value.teamStrategy === 'string'
+    ? TEAM_STRATEGIES.find((strategy) => strategy === value.teamStrategy)
+    : undefined;
+  if (!teamStrategy) return null;
+  const heroes = parsePersistedHeroState({
+    version: HERO_SAVE_VERSION,
+    roster: value.roster,
+    formation: value.formation,
+  });
+  if (!heroes) return null;
+  const roster = normalizeRoster(heroes.roster);
+  return hasUniquePersonalityIdentities(roster) ? {
+    roster,
+    formation: heroes.formation,
+    crystals: value.crystals,
+    teamStrategy,
+  } : null;
+}
+
+function parseVersionFiveState(value: unknown): Omit<PersistedGameState, 'version' | 'leaderId'> | null {
+  if (!isRecord(value) || value.version !== 5) return null;
   if (typeof value.crystals !== 'number' || !Number.isInteger(value.crystals) || value.crystals < 0) return null;
   const teamStrategy = typeof value.teamStrategy === 'string'
     ? TEAM_STRATEGIES.find((strategy) => strategy === value.teamStrategy)
@@ -163,12 +190,19 @@ export function parsePersistedGameState(value: unknown): PersistedGameState | nu
   if (!teamStrategy) return null;
   const roster = normalizeRoster(heroes.roster);
   if (!hasUniquePersonalityIdentities(roster)) return null;
+  const requestedLeaderId = value.leaderId === null || typeof value.leaderId === 'string'
+    ? value.leaderId
+    : null;
+  const leaderId = validateLeaderAssignment(requestedLeaderId, roster, heroes.formation).valid
+    ? requestedLeaderId
+    : null;
   return {
     version: GAME_SAVE_VERSION,
     roster,
     formation: heroes.formation,
     crystals: value.crystals,
     teamStrategy,
+    leaderId,
   };
 }
 
@@ -178,17 +212,21 @@ export function migrateGameState(
   initialCrystals: number,
 ): PersistedGameState | null {
   if (persistedVersion === GAME_SAVE_VERSION) return parsePersistedGameState(value);
+  if (persistedVersion === 5) {
+    const previous = parseVersionFiveState(value);
+    return previous ? { ...previous, version: GAME_SAVE_VERSION, leaderId: null } : null;
+  }
   if (persistedVersion === 4) {
     const previous = parseVersionFourState(value);
-    return previous ? { ...previous, version: GAME_SAVE_VERSION } : null;
+    return previous ? { ...previous, version: GAME_SAVE_VERSION, leaderId: null } : null;
   }
   if (persistedVersion === 3) {
     const previous = parseVersionThreeState(value);
-    return previous ? { ...previous, version: GAME_SAVE_VERSION } : null;
+    return previous ? { ...previous, version: GAME_SAVE_VERSION, leaderId: null } : null;
   }
   if (persistedVersion === 2) {
     const previous = parseVersionTwoState(value);
-    return previous ? { ...previous, version: GAME_SAVE_VERSION, teamStrategy: 'Balanced' } : null;
+    return previous ? { ...previous, version: GAME_SAVE_VERSION, teamStrategy: 'Balanced', leaderId: null } : null;
   }
   if (persistedVersion !== HERO_SAVE_VERSION) return null;
 
@@ -202,6 +240,7 @@ export function migrateGameState(
     formation: heroes.formation,
     crystals: initialCrystals,
     teamStrategy: 'Balanced',
+    leaderId: null,
   };
 }
 

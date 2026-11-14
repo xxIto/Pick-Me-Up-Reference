@@ -29,6 +29,13 @@ import type {
 import { formHeroMemories } from '../../memory/domain/memoryFormation.ts';
 import { normalizeMemoryProfile } from '../../memory/domain/memoryProfile.ts';
 import type { EpisodicMemory, MemoryFormationSource } from '../../memory/domain/types.ts';
+import { validateLeaderAssignment } from '../../social/domain/leadership.ts';
+import { formPartyRelationships } from '../../social/domain/relationshipEngine.ts';
+import { normalizeRelationshipProfile } from '../../social/domain/relationshipProfile.ts';
+import type {
+  RelationshipEvent,
+  RelationshipFormationSource,
+} from '../../social/domain/types.ts';
 
 interface HeroStoreState {
   version: typeof GAME_SAVE_VERSION;
@@ -36,12 +43,15 @@ interface HeroStoreState {
   formation: PartyFormation;
   crystals: number;
   teamStrategy: TeamStrategy;
+  leaderId: string | null;
   assignHero: (heroId: string, slot: FormationSlot) => { ok: true } | { ok: false; error: string };
   removeHero: (slot: FormationSlot) => void;
   summon: (count: SummonCount) => Promise<SummonTransactionResult>;
   setTeamStrategy: (strategy: TeamStrategy) => void;
   commitLearningExperience: (experience: CombatExperience) => LearningCommitResult;
   commitCombatMemory: (source: MemoryFormationSource) => MemoryCommitResult;
+  setPartyLeader: (leaderId: string | null) => { ok: true } | { ok: false; error: string };
+  commitRelationshipExperience: (source: RelationshipFormationSource) => RelationshipCommitResult;
 }
 
 export interface LearningCommitResult {
@@ -56,14 +66,21 @@ export interface MemoryCommitResult {
   createdMemories: readonly EpisodicMemory[];
 }
 
+export interface RelationshipCommitResult {
+  applied: boolean;
+  duplicate: boolean;
+  events: readonly RelationshipEvent[];
+}
+
 const STORAGE_KEY = 'rawgrim-hero-state';
 
-const fallbackState: Pick<HeroStoreState, 'version' | 'roster' | 'formation' | 'crystals' | 'teamStrategy'> = {
+const fallbackState: Pick<HeroStoreState, 'version' | 'roster' | 'formation' | 'crystals' | 'teamStrategy' | 'leaderId'> = {
   version: GAME_SAVE_VERSION,
   roster: initialHeroRoster,
   formation: initialPartyFormation,
   crystals: mockResources.crystals,
   teamStrategy: 'Balanced',
+  leaderId: null,
 };
 
 let summonCoordinator: SummonCoordinator | null = null;
@@ -107,16 +124,25 @@ export const useHeroStore = create<HeroStoreState>()(
         const hero = get().roster.find((candidate) => candidate.id === heroId);
         if (!hero) return { ok: false, error: 'Hero not found' };
         try {
-          const formation = assignHeroToSlot(get().formation, hero, slot);
-          set({ formation });
+          const current = get();
+          const replacedHeroId = current.formation[slot.line][slot.index];
+          const formation = assignHeroToSlot(current.formation, hero, slot);
+          set({
+            formation,
+            leaderId: replacedHeroId === current.leaderId ? null : current.leaderId,
+          });
           return { ok: true };
         } catch (error) {
           return { ok: false, error: error instanceof Error ? error.message : 'Assignment failed' };
         }
       },
-      removeHero: (slot) => set((state) => ({
-        formation: removeHeroFromSlot(state.formation, slot),
-      })),
+      removeHero: (slot) => set((state) => {
+        const removedHeroId = state.formation[slot.line][slot.index];
+        return {
+          formation: removeHeroFromSlot(state.formation, slot),
+          leaderId: removedHeroId === state.leaderId ? null : state.leaderId,
+        };
+      }),
       summon: (count) => getSummonCoordinator().execute(
         count,
         GACHA_CONFIG,
@@ -125,6 +151,12 @@ export const useHeroStore = create<HeroStoreState>()(
         createHeroInstanceId,
       ),
       setTeamStrategy: (teamStrategy) => set({ teamStrategy }),
+      setPartyLeader: (leaderId) => {
+        const validation = validateLeaderAssignment(leaderId, get().roster, get().formation);
+        if (!validation.valid) return { ok: false, error: validation.error };
+        set({ leaderId });
+        return { ok: true };
+      },
       commitLearningExperience: (experience) => {
         if (!experience.eligibleForLearning || experience.outcome === 'ongoing') {
           return { applied: false, duplicate: false, updates: [] };
@@ -173,13 +205,32 @@ export const useHeroStore = create<HeroStoreState>()(
           createdMemories: result.createdMemories,
         };
       },
+      commitRelationshipExperience: (source) => {
+        const roster = get().roster;
+        const validHeroIds = new Set(roster.map((hero) => hero.id));
+        const result = formPartyRelationships(roster.map((hero) => ({
+          instanceId: hero.id,
+          personality: ensureHeroPersonality(
+            hero,
+            heroDefinitions.find((definition) => definition.id === hero.definitionId),
+          ),
+          memoryProfile: hero.memory,
+          relationshipProfile: normalizeRelationshipProfile(hero.relationships, hero.id, validHeroIds),
+        })), source);
+        if (result.duplicate || !source.eligibleForPersistence || source.finalState.result.outcome === 'ongoing') {
+          return { applied: false, duplicate: result.duplicate, events: [] };
+        }
+        const profiles = new Map(result.profiles.map((profile) => [profile.ownerHeroId, profile]));
+        set({ roster: roster.map((hero) => ({ ...hero, relationships: profiles.get(hero.id) ?? hero.relationships })) });
+        return { applied: true, duplicate: false, events: result.events };
+      },
     }),
     {
       name: STORAGE_KEY,
       version: GAME_SAVE_VERSION,
       storage: createJSONStorage(createSafeBrowserStorage),
-      partialize: ({ version, roster, formation, crystals, teamStrategy }) => ({
-        version, roster, formation, crystals, teamStrategy,
+      partialize: ({ version, roster, formation, crystals, teamStrategy, leaderId }) => ({
+        version, roster, formation, crystals, teamStrategy, leaderId,
       }),
       migrate: (persisted, persistedVersion) =>
         migrateGameState(persisted, persistedVersion, mockResources.crystals) ?? fallbackState,
@@ -199,13 +250,14 @@ function getSummonCoordinator(): SummonCoordinator {
       return { crystals, roster };
     },
     persist: async ({ crystals, roster }) => {
-      const { formation, teamStrategy } = useHeroStore.getState();
+      const { formation, teamStrategy, leaderId } = useHeroStore.getState();
       const persisted: PersistedGameState = {
         version: GAME_SAVE_VERSION,
         crystals,
         roster,
         formation,
         teamStrategy,
+        leaderId,
       };
       localStorage.setItem(STORAGE_KEY, createGameSaveEnvelope(persisted));
     },

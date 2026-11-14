@@ -12,6 +12,7 @@ interface LearningLaboratoryProps {
   roster: readonly HeroInstance[];
   formation: PartyFormation;
   teamStrategy: TeamStrategy;
+  leaderId: string | null;
 }
 
 const LAB_ENCOUNTERS = [
@@ -19,7 +20,7 @@ const LAB_ENCOUNTERS = [
   { id: 'vanguard', name: 'Vanguard Drill', enemies: SANDBOX_ENEMIES.slice(0, 3) },
 ] as const;
 
-export function LearningLaboratory({ roster, formation, teamStrategy }: LearningLaboratoryProps) {
+export function LearningLaboratory({ roster, formation, teamStrategy, leaderId }: LearningLaboratoryProps) {
   const livingHeroes = useMemo(
     () => roster.filter((hero) => hero.status !== 'Dead' && hero.currentHp > 0),
     [roster],
@@ -42,6 +43,7 @@ export function LearningLaboratory({ roster, formation, teamStrategy }: Learning
         enemies: encounter.enemies,
         selectedHeroId: heroId,
         teamStrategy,
+        leaderId,
         seed,
         repetitions,
       }));
