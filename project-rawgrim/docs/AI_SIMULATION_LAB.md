@@ -28,7 +28,7 @@ The report aggregates battle data without retaining full logs:
 - average rounds, allied damage, effective healing, and wasted healing;
 - defend frequency, action distribution, and invalid decisions;
 - strategy adherence for decisions with a non-zero strategy signal;
-- hypothetical learning-update magnitude calculated on cloned return values but never committed;
+- hypothetical learning-update magnitude calculated on cloned return values but never committed, plus selected learned-utility contribution;
 - selected memory, relationship, and leadership contribution distributions;
 - per-class and per-rarity survival;
 - measured runtime and average runtime per battle;

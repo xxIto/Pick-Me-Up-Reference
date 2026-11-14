@@ -123,6 +123,7 @@ function summarizeBattle(
     total + observation.outcome.wastedHealing, 0);
   const actionDistribution = { offense: 0, healing: 0, defense: 0, activeSkill: 0 };
   const memoryContributions: number[] = [];
+  const learnedContributions: number[] = [];
   const relationshipContributions: number[] = [];
   const leadershipContributions: number[] = [];
   const targetDistribution: Record<string, number> = {};
@@ -144,6 +145,7 @@ function summarizeBattle(
       if (selected.teamStrategyContribution > 0) strategyAdherentDecisions += 1;
     }
     memoryContributions.push(selected.memoryContribution);
+    learnedContributions.push(selected.learnedPreferenceContribution);
     relationshipContributions.push(selected.relationshipContribution);
     leadershipContributions.push(selected.leadershipContribution);
   }
@@ -176,6 +178,7 @@ function summarizeBattle(
     strategyAdherentDecisions,
     strategyRelevantDecisions,
     learningUpdateMagnitude: hypotheticalLearningMagnitude(experiment.population.roster, experience),
+    learnedContributions,
     memoryContributions,
     relationshipContributions,
     leadershipContributions,

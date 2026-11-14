@@ -47,6 +47,18 @@ describe('headless simulation runner', () => {
     expect(report.traces[0]?.decisions.length).toBeLessThanOrEqual(experiment.maxDecisionsPerTrace);
   });
 
+  it('separates relevant memory influence from irrelevant memory', () => {
+    const relevant = runSimulationExperiment(createExperiment({
+      id: 'relevant-memory-check', scenarioId: 'skirmish', populationId: 'relevant-memory', count: 1, baseSeed: 9,
+    }), { now: () => 0 });
+    const irrelevant = runSimulationExperiment(createExperiment({
+      id: 'irrelevant-memory-check', scenarioId: 'skirmish', populationId: 'irrelevant-memory', count: 1, baseSeed: 9,
+    }), { now: () => 0 });
+
+    expect(relevant.metrics.memoryContribution.meanAbsolute).toBeGreaterThan(0);
+    expect(irrelevant.metrics.memoryContribution.meanAbsolute).toBe(0);
+  });
+
   it('supports asynchronous progress and cancellation without returning a partial complete report', async () => {
     const experiment = createExperiment({
       id: 'cancel', scenarioId: 'skirmish', populationId: 'baseline', count: 4, baseSeed: 1,

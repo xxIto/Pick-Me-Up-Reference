@@ -11,6 +11,7 @@ function battle(overrides: Partial<SimulationBattleResult> = {}): SimulationBatt
     targetDistribution: { 'enemy:one': 2, 'ally:one': 1 }, severeRiskDecisions: 1, observedDecisions: 4,
     strategyAdherentDecisions: 2, strategyRelevantDecisions: 3,
     learningUpdateMagnitude: 0,
+    learnedContributions: [1],
     memoryContributions: [2], relationshipContributions: [1], leadershipContributions: [0.5],
     classOutcomes: [{ heroClass: 'Warrior', survived: true }],
     rarityOutcomes: [{ rarity: 3, survived: true }],
@@ -43,6 +44,7 @@ describe('simulation metric aggregation', () => {
     expect(metrics.survivalRate.rate).toBe(0.5);
     expect(metrics.averageDamageDealt).toBe(60);
     expect(metrics.memoryContribution.mean).toBe(0);
+    expect(metrics.learnedContribution.mean).toBe(1);
     expect(metrics.actionDistribution.offense).toBe(4);
     expect(metrics.targetDistribution['enemy:one']).toBe(4);
     expect(metrics.riskTakingFrequency).toBe(0.25);

@@ -37,6 +37,7 @@ export function createBalancingReport(
       findings: [
         `Experiment used ${trainingLabel}.`,
         `Mean hypothetical evaluation update magnitude was ${metrics.learningUpdateMagnitude.mean}.`,
+        `Selected learned utility contribution mean was ${metrics.learnedContribution.mean}.`,
       ],
       risks: ['Utility or update magnitude changes are not evidence of improved intelligence without held-out outcome changes.'],
     },

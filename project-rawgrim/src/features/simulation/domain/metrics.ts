@@ -37,6 +37,7 @@ export interface MetricAccumulator {
   severeRiskDecisions: number;
   observedDecisions: number;
   learning: DistributionAccumulator;
+  learnedContribution: DistributionAccumulator;
   memory: DistributionAccumulator;
   relationship: DistributionAccumulator;
   leadership: DistributionAccumulator;
@@ -56,6 +57,7 @@ export function createMetricAccumulator(): MetricAccumulator {
     actionDistribution: { offense: 0, healing: 0, defense: 0, activeSkill: 0 },
     targetDistribution: new Map(), severeRiskDecisions: 0, observedDecisions: 0,
     learning: createDistributionAccumulator(), memory: createDistributionAccumulator(),
+    learnedContribution: createDistributionAccumulator(),
     relationship: createDistributionAccumulator(), leadership: createDistributionAccumulator(),
     perClass: new Map(), perRarity: new Map(),
   };
@@ -93,6 +95,7 @@ export function recordBattleMetrics(accumulator: MetricAccumulator, battle: Simu
     accumulator.targetDistribution.set(targetId, (accumulator.targetDistribution.get(targetId) ?? 0) + count);
   }
   recordDistributionValue(accumulator.learning, battle.learningUpdateMagnitude);
+  battle.learnedContributions.forEach((value) => recordDistributionValue(accumulator.learnedContribution, value));
   battle.memoryContributions.forEach((value) => recordDistributionValue(accumulator.memory, value));
   battle.relationshipContributions.forEach((value) => recordDistributionValue(accumulator.relationship, value));
   battle.leadershipContributions.forEach((value) => recordDistributionValue(accumulator.leadership, value));
@@ -136,6 +139,7 @@ export function finalizeMetrics(
       : 0,
     strategyAdherence: createRateMetric(accumulator.strategyAdherent, accumulator.strategyRelevant),
     learningUpdateMagnitude: finalizeDistribution(accumulator.learning),
+    learnedContribution: finalizeDistribution(accumulator.learnedContribution),
     memoryContribution: finalizeDistribution(accumulator.memory),
     relationshipContribution: finalizeDistribution(accumulator.relationship),
     leadershipContribution: finalizeDistribution(accumulator.leadership),

@@ -83,7 +83,7 @@ function memoryEntry(ownerHeroId: string, enemyCategoryId: string): EpisodicMemo
     id: `simulation-memory:${ownerHeroId}:${enemyCategoryId}`,
     ownerHeroId,
     sourceId: `simulation-history:${enemyCategoryId}`,
-    category: 'Combat',
+    category: 'Failure',
     title: `Observed ${enemyCategoryId}`,
     description: `A controlled laboratory memory concerning ${enemyCategoryId}.`,
     participantIds: [enemyCategoryId],
@@ -98,11 +98,20 @@ function memoryEntry(ownerHeroId: string, enemyCategoryId: string): EpisodicMemo
   };
 }
 
-function memoryPopulation(id: string, label: string, enemyCategoryId: string): SimulationPopulation {
+function memoryPopulation(id: string, label: string, enemyCategoryId: string, memoryCount = 1): SimulationPopulation {
   const population = baselinePopulation(id, label, 'Baseline party with a controlled bounded memory profile.');
   const roster = population.roster.map((hero) => hero.memory ? {
     ...hero,
-    memory: { ...hero.memory, memories: [memoryEntry(hero.id, enemyCategoryId)], nextEventOrder: 2 },
+    memory: {
+      ...hero.memory,
+      memories: Array.from({ length: memoryCount }, (_, index) => ({
+        ...memoryEntry(hero.id, enemyCategoryId),
+        id: `simulation-memory:${hero.id}:${enemyCategoryId}:${index}`,
+        sourceId: `simulation-history:${enemyCategoryId}:${index}`,
+        eventOrder: index + 1,
+      })),
+      nextEventOrder: memoryCount + 1,
+    },
   } : hero);
   return { ...population, roster, tags: ['memory', id] };
 }
@@ -272,8 +281,8 @@ export const simulationPopulations: readonly SimulationPopulation[] = [
   trainedPopulation('relevant-trained', 'Relevant Encounter Training', 'skirmish'),
   trainedPopulation('unrelated-trained', 'Unrelated Encounter Training', 'held-out-coven'),
   trainedPopulation('adverse-trained', 'Adverse Full-assault Training', 'full-assault'),
-  memoryPopulation('relevant-memory', 'Relevant Enemy Memory', 'ash-hound-a'),
-  memoryPopulation('irrelevant-memory', 'Irrelevant Enemy Memory', 'unseen-wraith'),
+  memoryPopulation('relevant-memory', 'Relevant Repeated Enemy Memory', 'ash-hound-a', 5),
+  memoryPopulation('irrelevant-memory', 'Irrelevant Enemy Memory', 'unseen-wraith', 5),
   maximumMemoryPopulation(),
   socialPopulation('trusted-party', 'Trusted Party', { familiarity: 80, trust: 80, respect: 70, affection: 40 }, 'first'),
   oneSidedTrustPopulation(),

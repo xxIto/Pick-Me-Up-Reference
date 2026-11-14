@@ -93,6 +93,7 @@ export interface SimulationMetrics {
   riskTakingFrequency: number;
   strategyAdherence: RateMetric;
   learningUpdateMagnitude: DistributionMetric;
+  learnedContribution: DistributionMetric;
   memoryContribution: DistributionMetric;
   relationshipContribution: DistributionMetric;
   leadershipContribution: DistributionMetric;
@@ -156,6 +157,7 @@ export interface SimulationBattleResult {
   strategyAdherentDecisions: number;
   strategyRelevantDecisions: number;
   learningUpdateMagnitude: number;
+  learnedContributions: readonly number[];
   memoryContributions: readonly number[];
   relationshipContributions: readonly number[];
   leadershipContributions: readonly number[];

@@ -153,6 +153,7 @@ export function SimulationLabPage() {
                   ['Wasted healing', report.metrics.averageWastedHealing],
                   ['Defend frequency', percent(report.metrics.defendFrequency)],
                   ['Strategy adherence', report.metrics.strategyAdherence.total > 0 ? percent(report.metrics.strategyAdherence.rate) : 'N/A'],
+                  ['Learned mean', report.metrics.learnedContribution.mean],
                   ['Memory mean', report.metrics.memoryContribution.mean],
                   ['Relationship mean', report.metrics.relationshipContribution.mean],
                   ['Leadership mean', report.metrics.leadershipContribution.mean],
