@@ -9,6 +9,8 @@ import { ExpeditionPage } from './features/progression/ExpeditionPage.tsx';
 import { InventoryPage } from './features/inventory/InventoryPage.tsx';
 import { ArchivePage } from './features/combat/ArchivePage.tsx';
 import { SimulationLabPage } from './features/simulation/SimulationLabPage.tsx';
+import { HallOfTheFallenPage } from './features/legacy/HallOfTheFallenPage.tsx';
+import { MemorialDetailPage } from './features/legacy/MemorialDetailPage.tsx';
 
 export default function App() {
   return (
@@ -23,6 +25,8 @@ export default function App() {
           <Route path="expedition" element={<ExpeditionPage />} />
           <Route path="inventory"  element={<InventoryPage />} />
           <Route path="archive"    element={<ArchivePage />} />
+          <Route path="fallen"     element={<HallOfTheFallenPage />} />
+          <Route path="fallen/:memorialId" element={<MemorialDetailPage />} />
           <Route path="dev/simulation-lab" element={<SimulationLabPage />} />
         </Route>
       </Routes>

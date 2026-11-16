@@ -32,7 +32,10 @@ describe('headless simulation runner', () => {
     const report = runSimulationExperiment(experiment, { now: () => 0 });
 
     expect(experiment).toEqual(snapshot);
-    expect(report.limitations).toContain('TASK 005E permanent-death and survivor-consequence systems are not present in this repository.');
+    expect(report.limitations).toContain(
+      'TASK 005E exists, but laboratory battles lack official-expedition authorization and cannot apply permanent consequences.',
+    );
+    expect(report.limitations.some((entry) => entry.includes('not present in this repository'))).toBe(false);
   });
 
   it('bounds detailed traces while aggregating every battle', () => {

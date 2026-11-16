@@ -7,6 +7,7 @@ import {
   Map,
   Package,
   BookOpen,
+  Skull,
   X,
 } from 'lucide-react';
 
@@ -24,6 +25,7 @@ const NAV_ENTRIES: NavEntry[] = [
   { label: 'Expedition',     to: '/expedition', icon: <Map              size={18} /> },
   { label: 'Inventory',      to: '/inventory',  icon: <Package          size={18} /> },
   { label: 'Archive',        to: '/archive',    icon: <BookOpen         size={18} /> },
+  { label: 'Hall of the Fallen', to: '/fallen', icon: <Skull            size={18} /> },
 ];
 
 interface SidebarProps {

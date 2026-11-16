@@ -10,6 +10,7 @@ import { useHeroStore } from './store/heroStore.ts';
 import { HeroChronicle } from '../memory/components/HeroChronicle.tsx';
 import { normalizeMemoryProfile } from '../memory/domain/memoryProfile.ts';
 import { HeroRelationships } from '../social/components/HeroRelationships.tsx';
+import { SurvivorConsequencesPanel } from '../legacy/components/SurvivorConsequencesPanel.tsx';
 
 const STAT_ICONS = {
   hp: Heart,
@@ -153,6 +154,7 @@ export function HeroDetailPage() {
       </div>
       <HeroChronicle profile={memory} />
       <HeroRelationships hero={heroInstance} roster={roster} />
+      <SurvivorConsequencesPanel hero={heroInstance} />
     </div>
   );
 }

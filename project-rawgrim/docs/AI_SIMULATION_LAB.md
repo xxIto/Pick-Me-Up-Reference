@@ -48,6 +48,6 @@ Use the same seed set for both populations. Report sample size, absolute differe
 
 Exported JSON contains the actual generated configuration, seed set, metrics, warnings, limitations, and bounded traces. No benchmark results are committed to the repository because no command was run during implementation.
 
-## Known limitation
+## Permanent-consequence isolation
 
-TASK 005E is not implemented in this repository. The laboratory can measure combat defeat and survival but cannot validate permanent-death lifecycle, memorial state, legacy transfer, or survivor consequences. Reports include this limitation automatically.
+TASK 005E is implemented behind an explicit official-expedition authorization contract. Laboratory experiments never possess that authorization and never call the lifecycle transaction, so simulated defeat cannot archive heroes or apply survivor consequences. Reports state this boundary automatically. Permanent-death end-to-end gameplay remains unavailable until TASK 006 supplies the official expedition integration.

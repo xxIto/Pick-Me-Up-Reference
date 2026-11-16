@@ -35,4 +35,8 @@ Heroes use individual multidimensional personalities and deterministic Utility A
 
 The accepted domain model, save migration, scoring bounds, and current limitations are documented in [AI_ARCHITECTURE.md](./AI_ARCHITECTURE.md).
 
+## Hero Legacy
+
+Combat-unit defeat is temporary simulation state. Permanent hero loss occurs only through a finalized official-expedition authorization and one validated lifecycle transaction. Fallen identities leave the active roster, remain independently readable in the Hall of the Fallen, and never transfer personality, learned behavior, or memories to another summon. Verified losses can create bounded, deterministic survivor experiences and temporary emotion changes without assigning unsupported blame.
+
 AI balance claims must be backed by reproducible matched-seed experiments. The internal Simulation Laboratory reports outcomes, uncertainty, modifier influence, bounded diagnostics, and explicit limitations without mutating player progression. Metric definitions and usage are documented in [AI_SIMULATION_LAB.md](./AI_SIMULATION_LAB.md).

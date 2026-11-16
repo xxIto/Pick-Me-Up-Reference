@@ -1,6 +1,7 @@
 import type { HeroPersonalityState } from './personalityTypes.ts';
 import type { HeroMemoryProfile } from '../../memory/domain/types.ts';
 import type { RelationshipProfile } from '../../social/domain/types.ts';
+import type { SurvivorConsequenceProfile } from '../../legacy/domain/types.ts';
 
 export const HERO_CLASSES = ['Warrior', 'Tank', 'Archer', 'Healer'] as const;
 export type HeroClass = (typeof HERO_CLASSES)[number];
@@ -59,6 +60,8 @@ export interface HeroInstance {
   memory?: HeroMemoryProfile;
   /** Optional only for saves created before TASK-005D; runtime migration supplies it once. */
   relationships?: RelationshipProfile;
+  /** Persistent bounded response history for verified official ally losses. */
+  survivorConsequences?: SurvivorConsequenceProfile;
 }
 
 export interface PartyFormation {

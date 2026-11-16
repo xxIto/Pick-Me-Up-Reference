@@ -27,7 +27,7 @@ import type {
   SimulationRunOptions,
 } from './types.ts';
 
-const TASK_005E_LIMITATION = 'TASK 005E permanent-death and survivor-consequence systems are not present in this repository.';
+const TASK_005E_LIMITATION = 'TASK 005E exists, but laboratory battles lack official-expedition authorization and cannot apply permanent consequences.';
 
 function actionKey(action: CombatAction): string {
   return `${action.type}:${action.skillId ?? ''}:${action.targetId}`;

@@ -12,6 +12,8 @@ TASK 005D adds directional relationships, deployed leadership, and multi-axis pa
 
 TASK 005F adds an isolated headless simulation layer. It composes the existing seeded combat, AI, learning-observation, memory-recall, and social-context functions without committing adaptive state. Streaming metrics and bounded traces make matched-seed comparisons reproducible without retaining every combat log.
 
+TASK 005E adds a separately authorized permanent-death boundary. Combat defeat never mutates the roster by itself. A future official expedition supplies stable battle, expedition, and resolution identities; the pure lifecycle pipeline composes learning, memory, relationships, survivor effects, memorial creation, formation cleanup, and leadership invalidation before one persisted Zustand commit.
+
 ## Hero personality state
 
 Every new `HeroInstance` receives a `HeroPersonalityState` containing:
@@ -29,7 +31,7 @@ New summoned heroes use the gacha engine's injected random source. This makes pr
 
 ## Save migration
 
-The game save schema is version 6.
+The game save schema is version 7.
 
 - Version 1 hero saves retain roster and formation, receive the configured initial crystal balance, deterministic personality profiles, and the `Balanced` strategy.
 - Version 2 game saves retain roster, formation, and crystals, then receive deterministic personality profiles and the `Balanced` strategy.
@@ -37,6 +39,7 @@ The game save schema is version 6.
 - Version 4 saves retain personality, learning, strategy, roster, formation, currency, and progression, then receive an independent empty memory profile for every hero.
 - Version 5 saves retain personality, learning, and memory, then receive neutral independent relationship profiles and `leaderId: null`.
 - Version 6 saves validate personality, learning, memory, directed relationships, and deployed leadership references.
+- Version 7 moves legacy `Dead` entries into unknown-history memorial snapshots, removes them from the active roster, and adds bounded survivor and processed-resolution state.
 - Invalid or unsupported data falls back through the existing Zustand persistence recovery path instead of partially hydrating the store.
 
 ## Utility decision pipeline
@@ -154,6 +157,7 @@ Candidate evaluation contains no random calls and does not mutate combat or pers
 - The memory duplicate fingerprint can rarely reject a new session through a hash collision; this is the bounded-storage trade-off.
 - The relationship duplicate fingerprint has the same rare collision trade-off in exchange for fixed save growth.
 - The project currently has no production progression battle route, so the persistent commit action is available but intentionally unused by the sandbox.
-- TASK 005E legacy/permadeath and survivor-consequence systems are not present in this repository; TASK 005F reports that gap instead of fabricating validation results.
+- TASK 005E cannot be triggered by normal gameplay until TASK 006 supplies a validated official-expedition authorization. Sandbox, replay, training, and laboratory results remain non-persistent.
+- Browser local storage provides whole-value replacement but no true disk-level transaction or protection against deliberate offline tampering.
 - Simulation reports use Wilson intervals for rates and conservative death attribution. A legal alternative is not labeled death-preventing without a controlled counterfactual replay.
 - Large browser batches yield between chunks and support cancellation, but Node execution remains preferred for 10,000-battle performance work.

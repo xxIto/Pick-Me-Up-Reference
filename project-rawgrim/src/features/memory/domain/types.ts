@@ -31,6 +31,7 @@ export interface MemoryObservedFacts {
   targetEliminated?: boolean;
   enemyCategoryIds: readonly string[];
   repeatedEncounterCount?: number;
+  fallenHeroId?: string;
 }
 
 export interface EpisodicMemory {

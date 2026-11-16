@@ -88,7 +88,7 @@ function isRelationshipEvent(value: unknown, ownerHeroId: string, targetHeroId: 
     Number.isSafeInteger(value.eventOrder) && (value.eventOrder as number) >= 1 && validChanges;
 }
 
-function isRelationship(value: unknown, ownerHeroId: string): value is HeroRelationship {
+export function validateHeroRelationship(value: unknown, ownerHeroId: string): value is HeroRelationship {
   if (!isRecord(value) || typeof value.targetHeroId !== 'string' || value.targetHeroId.length === 0 ||
     value.targetHeroId === ownerHeroId || !Array.isArray(value.history)) return false;
   return inRange(value.familiarity, 0, 100) &&
@@ -153,7 +153,7 @@ export function normalizeRelationshipProfile(
     return createEmptyRelationshipProfile(ownerHeroId);
   }
   const relationships = value.relationships.filter((relationship): relationship is HeroRelationship =>
-    isRelationship(relationship, ownerHeroId) &&
+    validateHeroRelationship(relationship, ownerHeroId) &&
     (!validHeroIds || validHeroIds.has(relationship.targetHeroId)),
   );
   return retainRelationshipProfile({

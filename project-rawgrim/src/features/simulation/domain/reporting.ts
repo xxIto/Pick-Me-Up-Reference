@@ -58,7 +58,7 @@ export function createBalancingReport(
         `Death rate was ${(metrics.deathRate.rate * 100).toFixed(1)}% with a 95% interval of ${(metrics.deathRate.lower * 100).toFixed(1)}%–${(metrics.deathRate.upper * 100).toFixed(1)}%.`,
       ],
       risks: [
-        'Combat defeat does not validate permanent-death fairness because TASK 005E is absent.',
+        'Combat defeat alone does not authorize TASK 005E permanent consequences; only finalized official expeditions may cross that boundary.',
         'No death is labeled avoidable without controlled counterfactual replay.',
       ],
     },

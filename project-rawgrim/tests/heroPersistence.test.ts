@@ -188,6 +188,8 @@ describe('game save migration', () => {
     const state = {
       ...validState,
       version: GAME_SAVE_VERSION,
+      memorials: [],
+      processedLegacyResolutionIds: [],
       crystals: 220,
       teamStrategy: 'Defensive' as const,
       leaderId: 'hero-1',
@@ -233,6 +235,8 @@ describe('game save migration', () => {
     const parsed = parsePersistedGameState({
       ...validState,
       version: GAME_SAVE_VERSION,
+      memorials: [],
+      processedLegacyResolutionIds: [],
       crystals: 100,
       teamStrategy: 'Balanced',
       leaderId: 'reserve-or-missing',
@@ -246,6 +250,8 @@ describe('game save migration', () => {
     expect(parsePersistedGameState({
       ...validState,
       version: GAME_SAVE_VERSION,
+      memorials: [],
+      processedLegacyResolutionIds: [],
       crystals: -1,
       teamStrategy: 'Balanced',
     })).toBeNull();
@@ -255,6 +261,8 @@ describe('game save migration', () => {
     expect(parsePersistedGameState({
       ...validState,
       version: GAME_SAVE_VERSION,
+      memorials: [],
+      processedLegacyResolutionIds: [],
       crystals: 100,
       teamStrategy: 'Reckless',
     })).toBeNull();
@@ -265,6 +273,8 @@ describe('game save migration', () => {
     expect(parsePersistedGameState({
       ...validState,
       version: GAME_SAVE_VERSION,
+      memorials: [],
+      processedLegacyResolutionIds: [],
       crystals: 100,
       teamStrategy: 'Balanced',
       roster: [

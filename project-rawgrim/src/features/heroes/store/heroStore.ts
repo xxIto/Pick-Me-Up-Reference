@@ -36,6 +36,15 @@ import type {
   RelationshipEvent,
   RelationshipFormationSource,
 } from '../../social/domain/types.ts';
+import { createDeathTransactionCoordinator } from '../../legacy/domain/deathTransaction.ts';
+import type {
+  DeathTransactionCoordinator,
+  DeathTransactionResult,
+} from '../../legacy/domain/deathTransaction.ts';
+import type {
+  HeroMemorialRecord,
+  OfficialDeathResolutionRequest,
+} from '../../legacy/domain/types.ts';
 
 interface HeroStoreState {
   version: typeof GAME_SAVE_VERSION;
@@ -44,6 +53,8 @@ interface HeroStoreState {
   crystals: number;
   teamStrategy: TeamStrategy;
   leaderId: string | null;
+  memorials: HeroMemorialRecord[];
+  processedLegacyResolutionIds: string[];
   assignHero: (heroId: string, slot: FormationSlot) => { ok: true } | { ok: false; error: string };
   removeHero: (slot: FormationSlot) => void;
   summon: (count: SummonCount) => Promise<SummonTransactionResult>;
@@ -52,6 +63,7 @@ interface HeroStoreState {
   commitCombatMemory: (source: MemoryFormationSource) => MemoryCommitResult;
   setPartyLeader: (leaderId: string | null) => { ok: true } | { ok: false; error: string };
   commitRelationshipExperience: (source: RelationshipFormationSource) => RelationshipCommitResult;
+  executeOfficialDeathResolution: (request: OfficialDeathResolutionRequest) => Promise<DeathTransactionResult>;
 }
 
 export interface LearningCommitResult {
@@ -74,16 +86,24 @@ export interface RelationshipCommitResult {
 
 const STORAGE_KEY = 'rawgrim-hero-state';
 
-const fallbackState: Pick<HeroStoreState, 'version' | 'roster' | 'formation' | 'crystals' | 'teamStrategy' | 'leaderId'> = {
-  version: GAME_SAVE_VERSION,
+const migratedInitialState = migrateGameState({
+  version: 6,
   roster: initialHeroRoster,
   formation: initialPartyFormation,
   crystals: mockResources.crystals,
   teamStrategy: 'Balanced',
   leaderId: null,
-};
+}, 6, mockResources.crystals);
+if (!migratedInitialState) throw new Error('Initial game state failed migration');
+
+const fallbackState: Pick<
+  HeroStoreState,
+  'version' | 'roster' | 'formation' | 'crystals' | 'teamStrategy' | 'leaderId' |
+  'memorials' | 'processedLegacyResolutionIds'
+> = migratedInitialState;
 
 let summonCoordinator: SummonCoordinator | null = null;
+let deathTransactionCoordinator: DeathTransactionCoordinator | null = null;
 
 function createHeroInstanceId(): string {
   return `hero-${crypto.randomUUID()}`;
@@ -224,13 +244,18 @@ export const useHeroStore = create<HeroStoreState>()(
         set({ roster: roster.map((hero) => ({ ...hero, relationships: profiles.get(hero.id) ?? hero.relationships })) });
         return { applied: true, duplicate: false, events: result.events };
       },
+      executeOfficialDeathResolution: (request) => getDeathTransactionCoordinator().execute(request),
     }),
     {
       name: STORAGE_KEY,
       version: GAME_SAVE_VERSION,
       storage: createJSONStorage(createSafeBrowserStorage),
-      partialize: ({ version, roster, formation, crystals, teamStrategy, leaderId }) => ({
+      partialize: ({
         version, roster, formation, crystals, teamStrategy, leaderId,
+        memorials, processedLegacyResolutionIds,
+      }) => ({
+        version, roster, formation, crystals, teamStrategy, leaderId,
+        memorials, processedLegacyResolutionIds,
       }),
       migrate: (persisted, persistedVersion) =>
         migrateGameState(persisted, persistedVersion, mockResources.crystals) ?? fallbackState,
@@ -250,7 +275,9 @@ function getSummonCoordinator(): SummonCoordinator {
       return { crystals, roster };
     },
     persist: async ({ crystals, roster }) => {
-      const { formation, teamStrategy, leaderId } = useHeroStore.getState();
+      const {
+        formation, teamStrategy, leaderId, memorials, processedLegacyResolutionIds,
+      } = useHeroStore.getState();
       const persisted: PersistedGameState = {
         version: GAME_SAVE_VERSION,
         crystals,
@@ -258,10 +285,42 @@ function getSummonCoordinator(): SummonCoordinator {
         formation,
         teamStrategy,
         leaderId,
+        memorials,
+        processedLegacyResolutionIds,
       };
       localStorage.setItem(STORAGE_KEY, createGameSaveEnvelope(persisted));
     },
     commit: ({ crystals, roster }) => useHeroStore.setState({ crystals, roster }),
   });
   return summonCoordinator;
+}
+
+function getDeathTransactionCoordinator(): DeathTransactionCoordinator {
+  if (deathTransactionCoordinator) return deathTransactionCoordinator;
+  deathTransactionCoordinator = createDeathTransactionCoordinator({
+    read: () => {
+      const {
+        version, roster, formation, crystals, teamStrategy, leaderId,
+        memorials, processedLegacyResolutionIds,
+      } = useHeroStore.getState();
+      return {
+        version, roster, formation, crystals, teamStrategy, leaderId,
+        memorials, processedLegacyResolutionIds,
+      };
+    },
+    persist: async (state) => {
+      localStorage.setItem(STORAGE_KEY, createGameSaveEnvelope(state));
+    },
+    commit: (state) => useHeroStore.setState({
+      version: state.version,
+      roster: state.roster,
+      formation: state.formation,
+      crystals: state.crystals,
+      teamStrategy: state.teamStrategy,
+      leaderId: state.leaderId,
+      memorials: state.memorials,
+      processedLegacyResolutionIds: state.processedLegacyResolutionIds,
+    }),
+  }, heroDefinitions);
+  return deathTransactionCoordinator;
 }
